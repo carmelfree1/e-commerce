@@ -8,6 +8,7 @@ const client: BuildOptions = {
     shop: 'src/client/shop/main.ts',
     admin: 'src/client/admin/main.ts',
     login: 'src/client/admin/login.ts',
+    forgot: 'src/client/admin/forgot.ts',
   },
   outdir: 'public/assets',
   bundle: true,

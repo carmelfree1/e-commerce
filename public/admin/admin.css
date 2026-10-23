@@ -306,3 +306,12 @@ body.no-scroll{overflow:hidden}
 @media(max-width:860px){.o-body{grid-template-columns:1fr}}
 .order .basket{margin:0;gap:0;display:block}.order .o-head{margin:0}
 .order{align-items:stretch}
+
+/* ---- Mot de passe oublié ---- */
+.center-link{text-align:center;font-size:.9rem}
+.center-link a{color:var(--green-d);font-weight:700;text-decoration:none}.center-link a:hover{text-decoration:underline;color:var(--red)}
+.otp{font-size:1.7rem!important;font-weight:800;letter-spacing:.5em;text-align:center;padding-left:.5em!important}
+.notice-ok{background:var(--green-l);color:var(--green-d);border-radius:10px;padding:12px 14px;font-weight:600;font-size:.9rem}
+.steps-dots{display:flex;gap:6px;justify-content:center}
+.steps-dots i{width:34px;height:4px;border-radius:99px;background:var(--grey-l)}.steps-dots i.on{background:var(--green)}
+.linkbtn{border:0;background:none;color:var(--green-d);font-weight:700;cursor:pointer;font-size:.88rem;padding:4px}.linkbtn:disabled{color:var(--muted);cursor:default}

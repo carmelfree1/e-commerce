@@ -83,4 +83,4 @@ export async function pushToEndpoint(endpoint: string, payload: PushPayload): Pr
 }
 
 /** Envoi « fire and forget » : une panne de push ne doit jamais casser une requête. */
-export const background = (p: Promise<unknown>) => { p.catch((e) => console.error('Push :', (e as Error).message)); };
+export const background = (p: Promise<unknown>) => { p.catch((e) => console.error("Tâche d'arrière-plan en échec :", (e as Error).message)); };

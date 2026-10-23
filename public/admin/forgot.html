@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#0f5a2c">
+  <title>Mot de passe oublié — CCM-NONSAKA</title>
+  <link rel="icon" href="/icons/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body class="login-page">
+  <aside class="login-art" aria-hidden="true">
+    <span class="logo"><img src="/icons/logo.svg" alt="" width="40" height="40"><span>CCM<b>-NONSAKA</b></span></span>
+    <div><h2>Retrouvez l'accès à votre boutique.</h2><p>Un code à 6 chiffres vous est envoyé par email pour choisir un nouveau mot de passe.</p></div>
+  </aside>
+  <main class="login-box">
+    <div class="login-card">
+      <div class="steps-dots" aria-hidden="true"><i class="on" id="dot1"></i><i id="dot2"></i></div>
+
+      <!-- Étape 1 : email -->
+      <form id="step1" class="login-card">
+        <div><h1>Mot de passe oublié</h1><p class="muted">Saisissez l'adresse email de l'administrateur : vous recevrez un code numérique.</p></div>
+        <label>Adresse email<input name="email" type="email" required autocomplete="username" autofocus maxlength="254"></label>
+        <p id="err1" class="error" role="alert" hidden></p>
+        <button class="btn primary" type="submit">Envoyer le code</button>
+        <p class="center-link"><a href="/admin/login.html">← Retour à la connexion</a></p>
+      </form>
+
+      <!-- Étape 2 : code + nouveau mot de passe -->
+      <form id="step2" class="login-card" hidden>
+        <div><h1>Saisissez le code</h1><p class="muted" id="sent-to"></p></div>
+        <label>Code reçu par email (6 chiffres)
+          <input class="otp" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required placeholder="••••••"></label>
+        <label>Nouveau mot de passe <span class="hint">· 10 caractères minimum</span>
+          <input name="password" type="password" required minlength="10" maxlength="200" autocomplete="new-password"></label>
+        <label>Confirmer le mot de passe
+          <input name="confirm" type="password" required minlength="10" maxlength="200" autocomplete="new-password"></label>
+        <p id="err2" class="error" role="alert" hidden></p>
+        <button class="btn primary" type="submit">Réinitialiser le mot de passe</button>
+        <p class="center-link"><button type="button" class="linkbtn" id="resend" disabled>Renvoyer le code</button></p>
+      </form>
+
+      <!-- Fin -->
+      <div id="done" class="login-card" hidden>
+        <div><h1>Mot de passe modifié</h1><p class="notice-ok">Vous pouvez maintenant vous connecter avec votre nouveau mot de passe. Toutes les anciennes sessions ont été fermées.</p></div>
+        <a class="btn primary" href="/admin/login.html" style="text-decoration:none">Aller à la connexion</a>
+      </div>
+    </div>
+  </main>
+  <script src="/assets/forgot.js" type="module"></script>
+</body>
+</html>

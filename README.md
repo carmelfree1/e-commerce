@@ -46,3 +46,12 @@ DATABASE_URL=postgres://postgres:postgres@localhost:15433/postgres DB_POOL_MAX=1
 ## Sécurité
 Voir [SECURITY-AUDIT.md](SECURITY-AUDIT.md) (audit, failles corrigées, risques résiduels, check-list de mise en production) et `npm run test:security` (tests d'attaque sur une instance locale de test).
 Après une mise à jour du code, les sessions admin existantes sont invalidées : reconnectez-vous.
+
+## Configuration de production
+Copiez/adaptez `.env.production` (ignoré par git, jamais envoyé sur GitHub), puis `npm run build && npm run start:prod`.
+Avant le premier lancement : créez l'utilisateur PostgreSQL dédié (commandes en tête du fichier) et mettez l'hôte réel dans `DATABASE_URL`.
+
+## Mot de passe oublié (admin)
+Page `/admin/forgot.html` (lien sur la page de connexion) : l'admin saisit son email, reçoit un **code à 6 chiffres** (valable 10 min, 5 essais, usage unique), puis choisit un nouveau mot de passe ; toutes les sessions ouvertes sont fermées.
+- Configurez l'envoi d'emails (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`) — exemple Gmail dans `.env.example`. Sans SMTP : en développement le code s'affiche dans la console, en production **aucun email ne part**.
+- L'email de l'admin doit être une vraie boîte mail : modifiable dans Admin > Mon compte.

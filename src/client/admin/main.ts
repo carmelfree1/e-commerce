@@ -120,6 +120,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) void
 api<{ email: string }>('/api/admin/me').then(async (me) => {
   $('#user-mail').textContent = me.email;
   $('#acc-mail').textContent = me.email;
+  $('#acc-mail2').textContent = me.email;
   $('#avatar-letter').textContent = me.email.charAt(0);
   const hash = location.hash.slice(1) as TabName;
   await show(TABS.includes(hash) ? hash : 'accueil');

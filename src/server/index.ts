@@ -4,6 +4,7 @@ import { config } from './config.js';
 import { ensureDatabase, getSetting, migrate, pool, setSetting } from './db.js';
 import { MIN_PASSWORD, hashPassword, newSalt, setSecret } from './security.js';
 import { initPush } from './push.js';
+import { mailConfigured } from './mailer.js';
 import { createApp } from './app.js';
 
 async function seedAdmin() {
@@ -43,6 +44,8 @@ async function main() {
   setSecret(secret);
 
   await initPush();
+  if (config.isProd && !mailConfigured) console.warn('⚠ SMTP_HOST non défini : le « mot de passe oublié » ne pourra pas envoyer de code par email.');
+  if (mailConfigured && (!config.smtpUser || !config.smtpPass)) console.warn("⚠ SMTP_USER / SMTP_PASS manquants : l'envoi d'emails échouera tant qu'ils ne sont pas renseignés.");
   await seedAdmin();
   await seedDemo();
 

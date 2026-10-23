@@ -1,15 +1,16 @@
 import express, { Router } from 'express';
-import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { config } from '../config.js';
 import { pool, tx } from '../db.js';
 import { invalidateProducts } from '../cache.js';
+import { sendResetCode } from '../mailer.js';
 import {
   COOKIE_NAME, HttpError, MIN_PASSWORD, SESSION_MS, audit, createSession, destroyOtherSessions, destroySession,
-  hashPassword, newSalt, rateLimiter, requireAdmin, sessionIdOf, toInt, toStr, verifyPassword,
+  hashPassword, keyed, newSalt, rateLimiter, requireAdmin, sessionIdOf, toInt, toStr, verifyPassword,
 } from '../security.js';
 import { background, isValidSubscription, pushToEndpoint, pushToRole, saveSubscription } from '../push.js';
+import crypto from 'node:crypto';
 import {
   LOW_STOCK, ORDER_STATUSES, STATUS_LABEL,
   MIN_USAGE_LENGTH, PRODUCT_KINDS,
@@ -53,6 +54,86 @@ adminRouter.post('/logout', async (req, res) => {
   res.json({ ok: true });
 });
 
+/* ----- Mot de passe oublié (public) -----
+ * 1) /forgot : l'admin saisit son email → un code à 6 chiffres lui est envoyé (réponse identique que le compte existe ou non).
+ * 2) /reset  : il saisit email + code + nouveau mot de passe. Code valable 10 min, 5 essais, usage unique ;
+ *    la réussite révoque toutes les sessions ouvertes.
+ */
+const RESET_MINUTES = 10, RESET_MAX_ATTEMPTS = 5;
+const forgotIpLimit = rateLimiter(5, 3600e3);
+const forgotMailLimit = rateLimiter(3, 3600e3);
+const resetIpLimit = rateLimiter(10, 15 * 60e3);
+const resetMailLimit = rateLimiter(8, 15 * 60e3);
+const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/;
+const isEmail = (s: string) => s.length <= 254 && EMAIL_RE.test(s);
+const sameHash = (a: string, b: string) => a.length === b.length && crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+
+adminRouter.post('/forgot', async (req, res) => {
+  const ip = req.ip || '';
+  const email = toStr(req.body?.email, 254).toLowerCase();
+  if (!forgotIpLimit.take(ip) || !forgotMailLimit.take(email)) {
+    audit('reset_rate_limited', { ip });
+    throw new HttpError(429, 'Trop de demandes. Réessayez dans une heure.');
+  }
+  const a = isEmail(email) ? (await pool.query<{ id: number; email: string }>('SELECT id, email FROM admins WHERE email = $1', [email])).rows[0] : undefined;
+  if (a) {
+    const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
+    await tx(async (c) => {
+      await c.query('UPDATE password_resets SET used = true WHERE admin_id = $1 AND NOT used', [a.id]); // un seul code actif
+      await c.query(`INSERT INTO password_resets(admin_id, code_hash, expires_at) VALUES ($1, $2, now() + ($3 || ' minutes')::interval)`,
+        [a.id, keyed(`${a.id}:${code}`), String(RESET_MINUTES)]);
+    });
+    audit('reset_requested', { ip, admin: a.email });
+    background(sendResetCode(a.email, code, RESET_MINUTES)); // envoi en arrière-plan : le temps de réponse ne révèle pas si le compte existe
+  } else {
+    await pool.query('SELECT 1');
+    audit('reset_requested_unknown', { ip });
+  }
+  res.json({ ok: true, minutes: RESET_MINUTES });
+});
+
+adminRouter.post('/reset', async (req, res) => {
+  const ip = req.ip || '';
+  const email = toStr(req.body?.email, 254).toLowerCase();
+  const code = toStr(req.body?.code, 12);
+  const password = typeof req.body?.password === 'string' ? req.body.password : '';
+  if (resetIpLimit.blocked(ip) || resetMailLimit.blocked(email)) {
+    audit('reset_blocked', { ip });
+    throw new HttpError(429, 'Trop de tentatives. Réessayez dans quelques minutes.');
+  }
+  if (password.length < MIN_PASSWORD || password.length > 200) {
+    throw new HttpError(400, `Le nouveau mot de passe doit faire entre ${MIN_PASSWORD} et 200 caractères`);
+  }
+  const bad = () => { resetIpLimit.hit(ip); resetMailLimit.hit(email); audit('reset_failed', { ip }); return new HttpError(400, 'Code invalide ou expiré.'); };
+  if (!/^\d{6}$/.test(code) || !isEmail(email)) throw bad();
+
+  const outcome = await tx(async (c) => {
+    const a = (await c.query<{ id: number }>('SELECT id FROM admins WHERE email = $1', [email])).rows[0];
+    if (!a) { sameHash(keyed('0:000000'), keyed('0:000000')); return 'bad' as const; }
+    const r = (await c.query<{ id: number; code_hash: string; attempts: number }>(
+      `SELECT id, code_hash, attempts FROM password_resets
+       WHERE admin_id = $1 AND NOT used AND expires_at > now() ORDER BY id DESC LIMIT 1 FOR UPDATE`, [a.id])).rows[0];
+    if (!r) return 'bad' as const;
+    if (!sameHash(keyed(`${a.id}:${code}`), r.code_hash)) {
+      // 5 mauvais essais : le code est détruit, il faut en redemander un.
+      await c.query('UPDATE password_resets SET attempts = attempts + 1, used = (attempts + 1 >= $2) WHERE id = $1', [r.id, RESET_MAX_ATTEMPTS]);
+      return 'bad' as const;
+    }
+    const salt = newSalt();
+    await c.query('UPDATE admins SET salt = $1, hash = $2 WHERE id = $3', [salt, await hashPassword(password, salt), a.id]);
+    await c.query('UPDATE password_resets SET used = true WHERE admin_id = $1', [a.id]);
+    await c.query('DELETE FROM admin_sessions WHERE admin_id = $1', [a.id]); // toutes les sessions ouvertes sont fermées
+    return 'ok' as const;
+  });
+  if (outcome !== 'ok') throw bad();
+  resetIpLimit.reset(ip);
+  resetMailLimit.reset(email);
+  loginIpLimit.reset(ip);
+  loginAcctLimit.reset(email); // un compte verrouillé par une attaque est libéré par une réinitialisation légitime
+  audit('password_reset', { ip, admin: email });
+  res.json({ ok: true });
+});
+
 adminRouter.use(requireAdmin);
 
 // Toute écriture authentifiée peut changer produits ou stocks : on vide le cache du catalogue public.
@@ -62,6 +143,24 @@ adminRouter.use((req, res, next) => {
 });
 
 adminRouter.get('/me', (req, res) => { res.json(req.admin); });
+
+/** Email de connexion et de récupération (c'est là que part le code « mot de passe oublié »). */
+adminRouter.post('/email', async (req, res) => {
+  const email = toStr(req.body?.email, 254).toLowerCase();
+  const current = typeof req.body?.current === 'string' ? req.body.current : '';
+  if (!isEmail(email)) throw new HttpError(400, 'Adresse email invalide');
+  const a = (await pool.query<{ salt: string; hash: string }>('SELECT salt, hash FROM admins WHERE id = $1', [req.admin!.id])).rows[0];
+  if (!(await verifyPassword(current, a.salt, a.hash))) throw new HttpError(403, 'Mot de passe actuel incorrect');
+  try {
+    await pool.query('UPDATE admins SET email = $1 WHERE id = $2', [email, req.admin!.id]);
+  } catch (e) {
+    if ((e as { code?: string }).code === '23505') throw new HttpError(409, 'Cette adresse est déjà utilisée');
+    throw e;
+  }
+  await pool.query('UPDATE password_resets SET used = true WHERE admin_id = $1', [req.admin!.id]);
+  audit('email_changed', { admin: req.admin!.email, to: email, ip: req.ip });
+  res.json({ ok: true, email });
+});
 
 adminRouter.post('/password', async (req, res) => {
   const { current, next } = (req.body ?? {}) as { current?: unknown; next?: unknown };

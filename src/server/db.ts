@@ -155,6 +155,22 @@ CREATE INDEX admin_sessions_admin_idx ON admin_sessions (admin_id);
 CREATE INDEX admin_sessions_expires_idx ON admin_sessions (expires_at);
 `,
   },
+  {
+    id: 6,
+    // Codes à 6 chiffres du « mot de passe oublié » : stockés sous forme d'empreinte HMAC, 10 min, 5 essais, usage unique.
+    sql: `
+CREATE TABLE password_resets (
+  id serial PRIMARY KEY,
+  admin_id integer NOT NULL REFERENCES admins(id) ON DELETE CASCADE,
+  code_hash text NOT NULL,
+  expires_at timestamptz NOT NULL,
+  attempts integer NOT NULL DEFAULT 0,
+  used boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX password_resets_admin_idx ON password_resets (admin_id, id DESC);
+`,
+  },
 ];
 
 export async function migrate(): Promise<void> {

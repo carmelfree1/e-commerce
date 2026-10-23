@@ -10,7 +10,7 @@ const dir = path.resolve(process.env.DEV_DB_DIR || 'data/pg');
 const port = Number(process.env.DEV_DB_PORT) || 15433;
 
 const db = await PGlite.create(dir);
-const server = new PGLiteSocketServer({ db, port, host: '127.0.0.1' });
+const server = new PGLiteSocketServer({ db, port, host: '127.0.0.1', maxConnections: 10 });
 await server.start();
 
 console.log(`PostgreSQL de développement prêt sur le port ${port} (données : ${dir})`);

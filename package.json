@@ -14,12 +14,15 @@
     "typecheck": "tsc -p tsconfig.server.json && tsc -p tsconfig.client.json && tsc -p tsconfig.sw.json",
     "icons": "tsx scripts/make-icons.ts",
     "db:dev": "tsx scripts/dev-db.ts",
-    "test:security": "node tests/security/attack-1.mjs && node tests/security/attack-2.mjs"
+    "test:security": "node tests/security/attack-1.mjs && node tests/security/attack-2.mjs",
+    "start:prod": "node --env-file=.env.production dist/server.js",
+    "admin:email": "tsx --env-file-if-exists=.env scripts/admin-email.ts"
   },
   "dependencies": {
     "compression": "^1.8.2",
     "express": "^5.1.0",
     "helmet": "^8.1.0",
+    "nodemailer": "^10.2.1",
     "pg": "^8.16.0",
     "web-push": "^3.6.7"
   },
@@ -29,6 +32,7 @@
     "@types/compression": "^1.8.1",
     "@types/express": "^5.0.0",
     "@types/node": "^22.0.0",
+    "@types/nodemailer": "^8.0.2",
     "@types/pg": "^8.15.0",
     "@types/web-push": "^3.6.4",
     "esbuild": "^0.25.0",

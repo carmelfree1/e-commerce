@@ -35,6 +35,9 @@ export const MIN_PASSWORD = 10;
 export const COOKIE_NAME = config.isProd ? '__Host-adm' : 'adm';
 export const SESSION_MS = 12 * 3600e3;
 
+/** Empreinte HMAC d'une valeur secrète courte (ex. code à 6 chiffres) : sans la clé du serveur, la base seule ne permet pas de la retrouver. */
+export const keyed = (s: string) => crypto.createHmac('sha256', secret).update(`reset:${s}`).digest('hex');
+
 const sign = (s: string) => crypto.createHmac('sha256', secret).update(s).digest('base64url');
 const fingerprint = (sid: string) => crypto.createHash('sha256').update(sid).digest('hex');
 

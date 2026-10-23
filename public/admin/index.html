@@ -122,6 +122,14 @@
     <section class="tab" id="tab-compte" hidden>
       <div class="head"><div><h1>Mon compte</h1><p class="sub" id="acc-mail"></p></div></div>
       <article class="card narrow">
+        <div class="card-h"><h2>Email de connexion et de récupération</h2></div>
+        <p class="muted small" style="margin-bottom:12px">Le code « mot de passe oublié » est envoyé à cette adresse : utilisez une boîte mail à laquelle vous avez accès. Adresse actuelle : <b id="acc-mail2"></b></p>
+        <form id="em" class="form">
+          <label>Nouvelle adresse email<input type="email" name="email" required autocomplete="email" maxlength="254"></label>
+          <label>Mot de passe actuel<input type="password" name="current" required autocomplete="current-password"></label>
+          <button class="btn primary">Enregistrer l'adresse</button>
+        </form></article>
+      <article class="card narrow" style="margin-top:16px">
         <div class="card-h"><h2>Changer le mot de passe</h2></div>
         <form id="pw" class="form">
           <label>Mot de passe actuel<input type="password" name="current" required autocomplete="current-password"></label>

@@ -16,6 +16,13 @@ export const config = {
   adminPassword: process.env.ADMIN_PASSWORD || '',
   seedDemo: process.env.SEED_DEMO !== '0',
   sessionSecret: process.env.SESSION_SECRET || '',
+  // Envoi d'emails (code « mot de passe oublié »)
+  smtpHost: process.env.SMTP_HOST || '',
+  smtpPort: Number(process.env.SMTP_PORT) || 587,
+  smtpSecure: process.env.SMTP_SECURE === 'true' || Number(process.env.SMTP_PORT) === 465,
+  smtpUser: process.env.SMTP_USER || '',
+  smtpPass: process.env.SMTP_PASS || '',
+  mailFrom: process.env.MAIL_FROM || (process.env.SMTP_USER ? `CCM-NONSAKA <${process.env.SMTP_USER}>` : 'CCM-NONSAKA <no-reply@localhost>'),
   /**
    * Nombre de proxys de confiance devant l'app (X-Forwarded-For n'est lu que dans ce cas).
    * Par défaut : 1 en production (HTTPS impose un proxy), 0 en développement. Mal réglé, ce paramètre

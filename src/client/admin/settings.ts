@@ -44,6 +44,19 @@ export function initPush(): void {
 
 /* ----- Compte ----- */
 export function initAccount(): void {
+  const em = $<HTMLFormElement>('#em');
+  em.addEventListener('submit', guard(async (e: Event) => {
+    e.preventDefault();
+    const r = await send<{ email: string }>('/api/admin/email', {
+      email: (em.elements.namedItem('email') as HTMLInputElement).value,
+      current: (em.elements.namedItem('current') as HTMLInputElement).value,
+    });
+    em.reset();
+    for (const id of ['#acc-mail', '#acc-mail2', '#user-mail']) $(id).textContent = r.email;
+    $('#avatar-letter').textContent = r.email.charAt(0);
+    toast('Adresse email mise à jour');
+  }));
+
   const form = $<HTMLFormElement>('#pw');
   form.addEventListener('submit', guard(async (e: Event) => {
     e.preventDefault();

@@ -7,6 +7,7 @@ import { HttpError, audit, rateLimiter } from './security.js';
 import { publicRouter } from './routes/public.js';
 import { adminRouter } from './routes/admin.js';
 import { renderShop } from './shopHtml.js';
+import { IMAGE_FILE_RE, getImage } from './images.js';
 
 export function createApp() {
   const app = express();
@@ -26,6 +27,8 @@ export function createApp() {
     res.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()');
     next();
   });
+  // Sonde de santé de l'hébergeur : volontairement SANS accès à la base (sinon une base serverless ne se mettrait jamais en veille).
+  app.get('/healthz', (_req, res) => { res.set('Cache-Control', 'no-store').type('text').send('ok'); });
   app.use(compression());
 
   // Plafond global par IP : amortit les inondations et le scraping.
@@ -63,6 +66,16 @@ export function createApp() {
     next();
   });
 
+  // Photos produits : lues dans la base (noms aléatoires → contenu immuable, cache d'un an, ETag = nom du fichier).
+  app.get('/uploads/:file', async (req, res, next) => {
+    const file = String(req.params.file);
+    if (!IMAGE_FILE_RE.test(file)) return next();
+    const img = await getImage(file);
+    if (!img) return next(); // repli : anciens fichiers du disque (développement)
+    res.set({ 'Content-Type': img.mime, 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'public, max-age=31536000, immutable', ETag: `"${file}"` });
+    if (req.fresh) { res.status(304).end(); return; }
+    res.send(img.data);
+  });
   app.use('/uploads', express.static(config.uploadDir, {
     maxAge: '30d', immutable: true, setHeaders: (r) => { r.set('X-Content-Type-Options', 'nosniff'); },
   }));

@@ -1,0 +1,41 @@
+# Blueprint Render : https://render.com/docs/blueprint-spec
+# Déploiement : Render > New > Blueprint > choisir le dépôt GitHub. Voir DEPLOY.md.
+# Aucun secret dans ce fichier : les valeurs `sync: false` sont saisies dans le tableau de bord Render.
+services:
+  - type: web
+    name: ccm-nonsaka
+    runtime: node
+    plan: starter            # 7 $/mois, toujours allumé
+    region: frankfurt        # même région que la base Neon (eu-central-1) = moins de latence
+    branch: main
+    autoDeploy: true
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /healthz   # n'interroge PAS la base (Neon peut ainsi se mettre en veille)
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY       # Render place un proxy HTTPS devant l'application
+        value: "1"
+      - key: SEED_DEMO
+        value: "0"
+      - key: DB_POOL_MAX
+        value: "5"
+      - key: SESSION_SECRET    # généré automatiquement par Render
+        generateValue: true
+      - key: DATABASE_URL      # URL Neon (version « pooled »), à copier depuis .env.production
+        sync: false
+      - key: ADMIN_EMAIL       # email de l'administrateur (aussi utilisé comme contact des notifications push)
+        sync: false
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS         # mot de passe d'application Gmail
+        sync: false
+      - key: MAIL_FROM
+        sync: false

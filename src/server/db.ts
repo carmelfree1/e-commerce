@@ -7,6 +7,7 @@ export const pool = new pg.Pool({
   max: Number(process.env.DB_POOL_MAX) || 10,
   keepAlive: true,
   idleTimeoutMillis: 30_000,
+  connectionTimeoutMillis: 20_000, // laisse le temps à une base serverless (Neon) de se réveiller
 });
 pool.on('error', (e) => console.error('Erreur PostgreSQL (connexion inactive) :', e.message));
 
@@ -171,31 +172,37 @@ CREATE TABLE password_resets (
 CREATE INDEX password_resets_admin_idx ON password_resets (admin_id, id DESC);
 `,
   },
+  {
+    id: 7,
+    // Photos produits dans la base (survivent aux redéploiements). `file` = nom public : /uploads/<file>.
+    sql: `
+CREATE TABLE images (
+  file text PRIMARY KEY,
+  mime text NOT NULL,
+  data bytea NOT NULL,
+  size integer NOT NULL CHECK (size > 0),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX images_created_idx ON images (created_at);
+`,
+  },
 ];
 
 export async function migrate(): Promise<void> {
-  const c = await pool.connect();
-  try {
-    await c.query('SELECT pg_advisory_lock(727001)'); // évite deux migrations simultanées
+  // Tout se passe dans UNE transaction avec un verrou « xact » : compatible avec les poolers en mode transaction
+  // (Neon, Supabase, PgBouncer) qui ne gardent pas la même connexion entre deux requêtes, et sûr si deux
+  // instances démarrent en même temps (la seconde attend, puis voit les migrations déjà faites).
+  await tx(async (c) => {
+    await c.query('SELECT pg_advisory_xact_lock(727001)');
     await c.query('CREATE TABLE IF NOT EXISTS schema_migrations (id integer PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())');
     const done = new Set((await c.query<{ id: number }>('SELECT id FROM schema_migrations')).rows.map((r) => r.id));
     for (const m of MIGRATIONS) {
       if (done.has(m.id)) continue;
-      await c.query('BEGIN');
-      try {
-        await c.query(m.sql);
-        await c.query('INSERT INTO schema_migrations(id) VALUES ($1)', [m.id]);
-        await c.query('COMMIT');
-        console.log(`Migration ${m.id} appliquée.`);
-      } catch (e) {
-        await c.query('ROLLBACK');
-        throw e;
-      }
+      await c.query(m.sql);
+      await c.query('INSERT INTO schema_migrations(id) VALUES ($1)', [m.id]);
+      console.log(`Migration ${m.id} appliquée.`);
     }
-  } finally {
-    await c.query('SELECT pg_advisory_unlock(727001)').catch(() => {});
-    c.release();
-  }
+  });
 }
 
 export async function getSetting(key: string, db: Db = pool): Promise<string | undefined> {

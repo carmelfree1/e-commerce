@@ -55,3 +55,6 @@ Avant le premier lancement : créez l'utilisateur PostgreSQL dédié (commandes 
 Page `/admin/forgot.html` (lien sur la page de connexion) : l'admin saisit son email, reçoit un **code à 6 chiffres** (valable 10 min, 5 essais, usage unique), puis choisit un nouveau mot de passe ; toutes les sessions ouvertes sont fermées.
 - Configurez l'envoi d'emails (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`) — exemple Gmail dans `.env.example`. Sans SMTP : en développement le code s'affiche dans la console, en production **aucun email ne part**.
 - L'email de l'admin doit être une vraie boîte mail : modifiable dans Admin > Mon compte.
+
+## Mise en ligne
+Voir [DEPLOY.md](DEPLOY.md) : Render (Starter) + Neon + nom de domaine, avec `render.yaml` prêt à l'emploi. Les photos produits sont stockées dans la base de données (elles survivent aux redéploiements).

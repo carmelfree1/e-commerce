@@ -6,6 +6,7 @@ import { MIN_PASSWORD, hashPassword, newSalt, setSecret } from './security.js';
 import { initPush } from './push.js';
 import { mailConfigured } from './mailer.js';
 import { createApp } from './app.js';
+import { cleanupOrphanImages } from './images.js';
 
 async function seedAdmin() {
   if ((await pool.query('SELECT 1 FROM admins LIMIT 1')).rowCount) return;
@@ -48,6 +49,11 @@ async function main() {
   if (mailConfigured && (!config.smtpUser || !config.smtpPass)) console.warn("⚠ SMTP_USER / SMTP_PASS manquants : l'envoi d'emails échouera tant qu'ils ne sont pas renseignés.");
   await seedAdmin();
   await seedDemo();
+
+  // Ménage des photos orphelines : au démarrage puis toutes les 12 h.
+  const sweep = () => cleanupOrphanImages().then((n) => { if (n) console.log(`${n} photo(s) orpheline(s) supprimée(s).`); }).catch((e) => console.error('Ménage des photos :', (e as Error).message));
+  void sweep();
+  setInterval(sweep, 12 * 3600e3).unref();
 
   createApp().listen(config.port, () => {
     console.log(`CCM-NONSAKA → http://localhost:${config.port}  (admin : http://localhost:${config.port}/admin/)`);

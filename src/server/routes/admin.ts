@@ -1,10 +1,9 @@
 import express, { Router } from 'express';
-import fs from 'node:fs';
-import path from 'node:path';
 import { config } from '../config.js';
 import { pool, tx } from '../db.js';
 import { invalidateProducts } from '../cache.js';
 import { sendResetCode } from '../mailer.js';
+import { MAX_TOTAL_BYTES, MIME, saveImage, totalImageBytes } from '../images.js';
 import {
   COOKIE_NAME, HttpError, MIN_PASSWORD, SESSION_MS, audit, createSession, destroyOtherSessions, destroySession,
   hashPassword, keyed, newSalt, rateLimiter, requireAdmin, sessionIdOf, toInt, toStr, verifyPassword,
@@ -290,17 +289,18 @@ adminRouter.delete('/products/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
-/* Photo : corps brut, type vérifié par la signature du fichier (jamais par l'extension envoyée). */
+/* Photo : corps brut, type vérifié par la signature du fichier (jamais par l'extension envoyée). Stockée en base. */
 adminRouter.post('/upload', express.raw({ type: () => true, limit: '3mb' }), async (req, res) => {
   const b: unknown = req.body;
   if (!Buffer.isBuffer(b) || b.length < 12) throw new HttpError(400, 'Fichier manquant');
-  let ext: string | null = null;
+  let ext: 'jpg' | 'png' | 'webp' | null = null;
   if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) ext = 'jpg';
   else if (b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) ext = 'png';
   else if (b.subarray(0, 4).toString() === 'RIFF' && b.subarray(8, 12).toString() === 'WEBP') ext = 'webp';
   if (!ext) throw new HttpError(400, 'Format accepté : JPG, PNG ou WebP');
+  if ((await totalImageBytes()) + b.length > MAX_TOTAL_BYTES) throw new HttpError(507, "Espace photos plein : supprimez des produits inutilisés ou contactez le support.");
   const file = `${crypto.randomBytes(12).toString('hex')}.${ext}`;
-  await fs.promises.writeFile(path.join(config.uploadDir, file), b);
+  await saveImage(file, MIME[ext], b);
   res.status(201).json({ url: `/uploads/${file}` });
 });
 

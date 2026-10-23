@@ -15,7 +15,9 @@ Architecture : **Render** héberge l'application (toujours allumée), **Neon** h
 | `.ci` | variable | variable | Prix flou (9 000 FCFA à plusieurs dizaines de milliers), bureau d'enregistrement accrédité exigé |
 
 **Conseil :** `.xyz` pour démarrer (≈ 1 $ + Render 7 $/mois = environ 2 mois d'hébergement avec 16 $). Quand les ventes arrivent, passez à un `.com` au premier renouvellement. **Regardez toujours le prix de renouvellement avant d'acheter.**
-Où acheter : [Porkbun](https://porkbun.com) ou [Cloudflare Registrar](https://www.cloudflare.com/products/registrar/) (carte bancaire ; Namecheap accepte aussi PayPal). Activez la double authentification sur ce compte.
+Où acheter : **[Cloudflare Registrar](https://www.cloudflare.com/products/registrar/)** (recommandé : vendu au prix coûtant, sans marge, `.com` ≈ 10,5 $ par an, la gestion DNS est incluse et gratuite) ou [Porkbun](https://porkbun.com) (Namecheap accepte aussi PayPal). Tous les suffixes ne sont pas proposés par Cloudflare (par ex. `.xyz` : à vérifier dans la barre de recherche du tableau de bord). Activez la double authentification sur ce compte.
+
+> **Peut-on tout faire chez Cloudflare ?** Le domaine, le DNS, le HTTPS et la protection : oui. Héberger *cette* application (Node.js + PostgreSQL) : pas simplement. Cloudflare Pages ne sert que des sites statiques ; Workers impose de réécrire le serveur ; Cloudflare Containers (en bêta, forfait « Workers Paid » 5 $/mois + consommation) peut faire tourner un conteneur, mais il se met en veille après inactivité (réveil de quelques secondes) et son disque est effacé à chaque mise en veille. D'où le choix : **domaine chez Cloudflare + application sur Render**.
 
 ## 2. Créer le service sur Render
 1. Créez un compte sur [render.com](https://render.com), ajoutez un moyen de paiement (carte). Activez la double authentification.
@@ -32,11 +34,11 @@ Où acheter : [Porkbun](https://porkbun.com) ou [Cloudflare Registrar](https://w
 
 ## 3. Relier le nom de domaine
 1. Render > votre service > **Settings > Custom Domains** > ajoutez `votredomaine.xyz` **et** `www.votredomaine.xyz`.
-2. Chez le registrar (zone DNS) :
+2. Dans la zone DNS (chez Cloudflare : tableau de bord > votre domaine > **DNS > Records**) :
    - Enregistrement **A** : nom `@` → `216.24.57.1`
    - Enregistrement **CNAME** : nom `www` → `ccm-nonsaka.onrender.com` (l'adresse exacte de votre service)
    - **Supprimez tout enregistrement AAAA** (Render ne gère pas l'IPv6).
-   - Si le DNS est chez Cloudflare : nuage **gris** (« DNS only »), pas orange.
+   - Chez Cloudflare, mettez le **nuage en gris** (« DNS only ») sur ces deux lignes : le nuage orange empêche Render de vérifier le domaine et d'émettre le certificat HTTPS.
 3. Retour sur Render : **Verify**. Le certificat HTTPS est créé et renouvelé automatiquement (quelques minutes, parfois jusqu'à 1 h pour la propagation DNS).
 4. **N'invitez vos clients que sur le vrai domaine** : les abonnements aux notifications push sont liés à l'adresse du site ; ceux pris sur `onrender.com` ne suivent pas.
 

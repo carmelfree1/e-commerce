@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Boutique en ligne de produits bio CCM-NONSAKA (TypeScript, PostgreSQL, PWA, notifications push)",
   "engines": {
-    "node": ">=22.13"
+    "node": "22.x"
   },
   "scripts": {
     "dev": "tsx scripts/build.ts && tsx watch --env-file-if-exists=.env src/server/index.ts",
@@ -19,24 +19,24 @@
     "admin:email": "tsx --env-file-if-exists=.env scripts/admin-email.ts"
   },
   "dependencies": {
-    "compression": "^1.8.2",
-    "express": "^5.1.0",
-    "helmet": "^8.1.0",
-    "nodemailer": "^10.2.1",
-    "pg": "^8.16.0",
-    "web-push": "^3.6.7"
-  },
-  "devDependencies": {
-    "@electric-sql/pglite": "^0.5.11",
-    "@electric-sql/pglite-socket": "^0.2.14",
     "@types/compression": "^1.8.1",
     "@types/express": "^5.0.0",
     "@types/node": "^22.0.0",
     "@types/nodemailer": "^8.0.2",
     "@types/pg": "^8.15.0",
     "@types/web-push": "^3.6.4",
+    "compression": "^1.8.2",
     "esbuild": "^0.25.0",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "nodemailer": "^10.2.1",
+    "pg": "^8.16.0",
     "tsx": "^4.20.0",
-    "typescript": "^5.9.0"
+    "typescript": "^5.9.0",
+    "web-push": "^3.6.7"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.11",
+    "@electric-sql/pglite-socket": "^0.2.14"
   }
 }

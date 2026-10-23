@@ -2,8 +2,15 @@ import pg from 'pg';
 import { config } from './config.js';
 
 // Les COUNT/SUM restent des nombres JS (castés en ::int dans les requêtes) ; les dates sortent en ISO.
+/**
+ * `sslmode=require|prefer|verify-ca` : la bibliothèque `pg` les traite aujourd'hui comme `verify-full` (certificat vérifié)
+ * et affiche un avertissement à chaque démarrage. On écrit explicitement `verify-full` : même sécurité, plus d'avertissement,
+ * et aucun changement de comportement lors des prochaines versions de `pg`.
+ */
+export const normalizeDatabaseUrl = (url: string): string => url.replace(/([?&]sslmode=)(require|prefer|verify-ca)(?=&|$)/i, '$1verify-full');
+
 export const pool = new pg.Pool({
-  connectionString: config.databaseUrl,
+  connectionString: normalizeDatabaseUrl(config.databaseUrl),
   max: Number(process.env.DB_POOL_MAX) || 10,
   keepAlive: true,
   idleTimeoutMillis: 30_000,
@@ -30,7 +37,7 @@ export async function tx<T>(fn: (c: pg.PoolClient) => Promise<T>): Promise<T> {
 
 /** Crée la base si elle n'existe pas (nécessite le droit CREATEDB). */
 export async function ensureDatabase(): Promise<void> {
-  const probe = new pg.Client({ connectionString: config.databaseUrl });
+  const probe = new pg.Client({ connectionString: normalizeDatabaseUrl(config.databaseUrl) });
   try {
     await probe.connect();
     await probe.end();
@@ -39,7 +46,7 @@ export async function ensureDatabase(): Promise<void> {
     await probe.end().catch(() => {});
     if ((e as { code?: string }).code !== '3D000') throw e;
   }
-  const url = new URL(config.databaseUrl);
+  const url = new URL(normalizeDatabaseUrl(config.databaseUrl));
   const name = decodeURIComponent(url.pathname.slice(1));
   if (!/^[a-zA-Z0-9_]{1,63}$/.test(name)) throw new Error(`Nom de base invalide : ${name}`);
   url.pathname = '/postgres';

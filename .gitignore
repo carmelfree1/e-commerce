@@ -1,0 +1,31 @@
+# Dépendances et builds
+node_modules/
+dist/
+public/assets/
+public/sw.js
+*.tsbuildinfo
+
+# Secrets et configuration locale — ne JAMAIS versionner
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+
+# Données d'exécution (base locale, photos envoyées par l'admin)
+data/
+uploads/
+pgdata/
+*.db
+*.sqlite*
+
+# Divers
+*.log
+.DS_Store
+Thumbs.db
+.claude/
+.vscode/
+.idea/

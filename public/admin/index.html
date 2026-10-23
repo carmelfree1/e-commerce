@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#ffffff">
+  <title>Administration — CCM-NONSAKA</title>
+  <link rel="icon" href="/icons/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body>
+  <header class="bar">
+    <button class="burger" id="burger" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="tabs"><i data-ic="menu"></i></button>
+    <div class="scrim" id="scrim" hidden></div>
+    <a class="logo" href="/admin/" aria-label="Accueil admin"><img src="/icons/logo.svg" alt="" width="34" height="34"><span>CCM<b>-NONSAKA</b><em>Admin</em></span></a>
+    <nav class="tabs" id="tabs" aria-label="Sections">
+      <div class="tabs-head"><span class="logo"><img src="/icons/logo.svg" alt="" width="30" height="30"><span>CCM<b>-NONSAKA</b></span></span><button type="button" class="x" id="burger-close" aria-label="Fermer le menu"><i data-ic="x"></i></button></div>
+      <button data-tab="accueil" class="on"><i data-ic="home"></i><span>Tableau de bord</span></button>
+      <button data-tab="produits"><i data-ic="box"></i><span>Produits</span></button>
+      <button data-tab="commandes"><i data-ic="receipt"></i><span>Commandes</span><b id="pill" class="pill" hidden>0</b></button>
+      <button data-tab="notifs"><i data-ic="bell"></i><span>Notifications</span></button>
+    </nav>
+    <div class="who">
+      <a class="btn-link" href="/" target="_blank" rel="noopener" title="Voir la boutique"><i data-ic="store"></i><span>Boutique</span></a>
+      <button class="avatar" id="btn-user" aria-haspopup="menu" aria-expanded="false" aria-label="Mon compte"><span id="avatar-letter">A</span></button>
+      <div class="menu" id="user-menu" role="menu" hidden>
+        <p class="menu-mail" id="user-mail"></p>
+        <button role="menuitem" data-tab="compte"><i data-ic="user"></i>Mon compte</button>
+        <button role="menuitem" id="logout" class="danger"><i data-ic="logout"></i>Déconnexion</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+    <!-- Tableau de bord -->
+    <section class="tab" id="tab-accueil">
+      <div class="head">
+        <div><h1>Tableau de bord</h1><p class="sub" id="today"></p></div>
+        <button class="btn primary" data-new-product><i data-ic="plus"></i>Nouveau produit</button>
+      </div>
+      <div class="kpis" id="kpis" aria-live="polite"></div>
+      <div class="grid2">
+        <article class="card">
+          <div class="card-h"><h2>Ventes des 14 derniers jours</h2>
+            <div class="seg" id="metric" role="group" aria-label="Indicateur"><button class="on" data-m="revenue">Chiffre d'affaires</button><button data-m="orders">Commandes</button></div></div>
+          <p class="chart-info" id="chart-info"></p>
+          <div id="chart" class="chart"></div>
+        </article>
+        <article class="card">
+          <div class="card-h"><h2>Commandes par statut</h2></div>
+          <div id="status-bar" class="status-bar"></div>
+          <ul id="status-list" class="legend"></ul>
+        </article>
+      </div>
+      <div class="grid2 even">
+        <article class="card"><div class="card-h"><h2>Alertes de stock</h2><button class="link" data-goto="produits">Voir les produits</button></div><div id="low"></div></article>
+        <article class="card"><div class="card-h"><h2>Produits les plus vendus</h2></div><div id="top"></div></article>
+      </div>
+      <article class="card"><div class="card-h"><h2>Dernières commandes</h2><button class="link" data-goto="commandes">Tout voir</button></div><div id="recent"></div></article>
+    </section>
+
+    <!-- Produits -->
+    <section class="tab" id="tab-produits" hidden>
+      <div class="head">
+        <div><h1>Produits</h1><p class="sub" id="prod-sub"></p></div>
+        <button class="btn primary" data-new-product><i data-ic="plus"></i>Nouveau produit</button>
+      </div>
+      <div class="toolbar">
+        <label class="search"><i data-ic="search"></i><input id="p-search" type="search" placeholder="Rechercher un produit…" aria-label="Rechercher un produit"></label>
+        <select id="p-cat" aria-label="Catégorie"></select>
+        <div class="seg" id="p-filter" role="group" aria-label="Filtre de stock">
+          <button class="on" data-f="all">Tous</button><button data-f="low">Stock bas</button><button data-f="out">Rupture</button><button data-f="hidden">Masqués</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="table" id="p-table">
+          <thead><tr><th>Produit</th><th>Prix</th><th>Stock</th><th>Visible</th><th class="r">Actions</th></tr></thead>
+          <tbody id="p-rows"></tbody>
+        </table>
+      </div>
+      <div id="p-empty" class="empty" hidden></div>
+    </section>
+
+    <!-- Commandes -->
+    <section class="tab" id="tab-commandes" hidden>
+      <div class="head">
+        <div><h1>Commandes</h1><p class="sub">Mise à jour automatique toutes les 30 secondes.</p></div>
+        <button class="btn ghost" id="o-refresh"><i data-ic="refresh"></i>Actualiser</button>
+      </div>
+      <div class="toolbar">
+        <label class="search"><i data-ic="search"></i><input id="o-search" type="search" placeholder="Code, nom ou téléphone…" aria-label="Rechercher une commande"></label>
+        <div class="seg scroll" id="o-filter" role="group" aria-label="Filtre de statut"></div>
+      </div>
+      <div id="orders" class="orders"></div>
+    </section>
+
+    <!-- Notifications -->
+    <section class="tab" id="tab-notifs" hidden>
+      <div class="head"><div><h1>Notifications</h1><p class="sub">Alertes pour vous, annonces pour vos clients.</p></div></div>
+      <div class="grid2 even">
+        <article class="card">
+          <div class="card-h"><h2>Alertes sur cet appareil</h2></div>
+          <p class="muted">Recevez une notification à chaque nouvelle commande et quand un stock devient bas.</p>
+          <div class="row-actions"><button class="btn primary" id="admin-push"><i data-ic="bell"></i>Activer les alertes ici</button><span id="push-state" class="muted"></span></div>
+          <p class="muted small" id="admin-count"></p>
+        </article>
+        <article class="card">
+          <div class="card-h"><h2>Annonce aux clients</h2></div>
+          <p class="muted" id="client-count"></p>
+          <form id="bcast" class="form">
+            <label>Titre<input name="title" maxlength="60" required placeholder="Promo du week-end"></label>
+            <label>Message<textarea name="body" maxlength="200" rows="3" required placeholder="Jusqu'à -20 % sur les fruits frais."></textarea></label>
+            <div class="preview-notif" aria-hidden="true"><img src="/icons/icon-96.png" alt="" width="36" height="36"><div><b id="pv-title">Titre de l'annonce</b><span id="pv-body">Aperçu de la notification…</span></div></div>
+            <button class="btn primary"><i data-ic="send"></i>Envoyer</button>
+          </form>
+        </article>
+      </div>
+    </section>
+
+    <!-- Compte -->
+    <section class="tab" id="tab-compte" hidden>
+      <div class="head"><div><h1>Mon compte</h1><p class="sub" id="acc-mail"></p></div></div>
+      <article class="card narrow">
+        <div class="card-h"><h2>Changer le mot de passe</h2></div>
+        <form id="pw" class="form">
+          <label>Mot de passe actuel<input type="password" name="current" required autocomplete="current-password"></label>
+          <label><span>Nouveau mot de passe <span class="hint">· 10 caractères minimum</span></span><input type="password" name="next" required minlength="10" autocomplete="new-password"></label>
+          <button class="btn primary">Mettre à jour</button>
+        </form>
+      </article>
+    </section>
+  </main>
+
+  <dialog id="dlg-prod" class="dlg">
+    <form id="prod-form" method="dialog" class="dlg-in">
+      <header class="dlg-h"><h2 id="prod-title">Nouveau produit</h2><button type="button" class="x" data-dclose aria-label="Fermer"><i data-ic="x"></i></button></header>
+      <div class="dlg-b form-grid">
+        <div class="full drop" id="drop" tabindex="0" role="button" aria-label="Choisir une photo">
+          <img id="prev" alt="" hidden>
+          <div class="drop-t"><i data-ic="image"></i><b>Ajouter une photo</b><span>Glissez une image ici ou cliquez · JPG, PNG, WebP · 3 Mo max</span></div>
+          <button type="button" class="chip-btn" id="rm-img" hidden>Retirer</button>
+          <input type="file" id="file" accept="image/jpeg,image/png,image/webp" hidden>
+        </div>
+        <div class="full kind" role="radiogroup" aria-label="Type de produit">
+          <label class="kind-opt"><input type="radio" name="kind" value="produit" checked><span><b>Produit bio</b><small>Fruits, huiles, miel, cosmétiques…</small></span></label>
+          <label class="kind-opt"><input type="radio" name="kind" value="medicament"><span><b>Médicament traditionnel</b><small>Le mode d'emploi est obligatoire</small></span></label>
+        </div>
+        <label class="full">Nom du produit<input name="name" required minlength="2" maxlength="120" placeholder="Miel pur de brousse 500 g"></label>
+        <label>Prix (FCFA)<input name="price" type="number" min="0" step="1" required inputmode="numeric"></label>
+        <label><span>Quantité en stock <span class="hint">· obligatoire</span></span><input name="stock" type="number" min="0" step="1" required inputmode="numeric"></label>
+        <label>Catégorie<input name="category" maxlength="40" list="cat-list" placeholder="Fruits, Huiles…"><datalist id="cat-list"></datalist></label>
+        <label class="switch-row"><span>Visible en boutique</span><span class="switch"><input type="checkbox" name="active" checked><i></i></span></label>
+        <label class="full">Description<textarea name="description" rows="3" maxlength="1000"></textarea></label>
+        <label class="full usage" id="usage-row" hidden><span>Mode d'emploi <span class="hint">· obligatoire · dosage, durée, précautions</span></span>
+          <textarea name="usage" rows="5" maxlength="2000" placeholder="Ex. : Faire bouillir 1 poignée de feuilles dans 1 litre d'eau pendant 10 minutes. Boire 1 verre matin et soir pendant 7 jours. Déconseillé aux femmes enceintes."></textarea></label>
+        <p id="prod-err" class="error full" role="alert" hidden></p>
+      </div>
+      <footer class="dlg-f"><button type="button" class="btn ghost" data-dclose>Annuler</button><button class="btn primary" type="submit">Enregistrer</button></footer>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-confirm" class="dlg small">
+    <form method="dialog" class="dlg-in">
+      <div class="dlg-b"><h2 id="cf-title">Confirmer</h2><p id="cf-text" class="muted"></p></div>
+      <footer class="dlg-f"><button value="no" class="btn ghost">Annuler</button><button value="yes" class="btn danger" id="cf-ok">Confirmer</button></footer>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status"></div>
+  <script src="/assets/admin.js" type="module"></script>
+</body>
+</html>

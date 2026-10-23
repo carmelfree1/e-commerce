@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#0f5a2c">
+  <title>Connexion admin — CCM-NONSAKA</title>
+  <link rel="icon" href="/icons/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body class="login-page">
+  <aside class="login-art" aria-hidden="true">
+    <span class="logo"><img src="/icons/logo.svg" alt="" width="40" height="40"><span>CCM<b>-NONSAKA</b></span></span>
+    <div><h2>Gérez votre boutique bio.</h2><p>Produits, stocks et commandes au même endroit.</p></div>
+  </aside>
+  <main class="login-box">
+    <form id="login" class="login-card">
+      <div><h1>Connexion</h1><p class="muted">Espace réservé à l'administration.</p></div>
+      <label>Email<input name="email" type="email" required autocomplete="username" autofocus></label>
+      <label>Mot de passe<input name="password" type="password" required autocomplete="current-password"></label>
+      <p id="err" class="error" role="alert" hidden></p>
+      <button class="btn primary" type="submit">Se connecter</button>
+    </form>
+  </main>
+  <script src="/assets/login.js" type="module"></script>
+</body>
+</html>

@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CCM-NONSAKA — Produits bio</title>
+  <meta name="description" content="CCM-NONSAKA : produits bio frais et naturels, livrés chez vous.">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icons/logo.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="modulepreload" href="/assets/shop.js">
+</head>
+<body>
+  <a class="skip" href="#catalogue">Aller au catalogue</a>
+
+  <header class="top">
+    <button class="icon-btn" id="btn-menu" aria-label="Ouvrir le menu"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <a class="brand" href="/" aria-label="CCM-NONSAKA, accueil"><img src="/icons/logo.svg" alt="" width="40" height="40"><span>CCM<b>-NONSAKA</b></span></a>
+    <div class="top-actions">
+      <button class="icon-btn" id="btn-search" aria-label="Rechercher" aria-expanded="false"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg></button>
+      <button class="icon-btn" id="btn-cart" aria-label="Ouvrir le panier"><svg viewBox="0 0 24 24"><path d="M5 8h14l-1.2 11.2a1.5 1.5 0 0 1-1.5 1.3H7.7a1.5 1.5 0 0 1-1.5-1.3L5 8z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg><span id="cart-count" class="count">0</span></button>
+      <button class="icon-btn" id="btn-track" aria-label="Suivre ma commande" title="Suivre ma commande"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4"/><path d="M12 12v8"/></svg></button>
+    </div>
+  </header>
+  <form id="searchbar" class="searchbar" role="search" hidden><input id="search" type="search" placeholder="Rechercher un produit bio…" aria-label="Rechercher un produit"></form>
+
+  <div class="notice" id="notice"><p>Livraison à domicile · Paiement à la livraison · Produits bio sélectionnés</p><button id="notice-x" aria-label="Fermer l'annonce">✕</button></div>
+
+  <main id="catalogue">
+    <div class="section-head">
+      <h2>Découvrez nos produits</h2>
+      <button class="seeall" id="see-all">Tout voir <svg viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg></button>
+    </div>
+    <div id="cats" class="cats" role="tablist" aria-label="Catégories"></div>
+    <div id="grid" class="grid" aria-live="polite"></div>
+    <p id="empty" class="muted center" hidden>Aucun produit trouvé.</p>
+  </main>
+
+  <section class="services">
+    <div><svg viewBox="0 0 24 24"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7.5" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg><h3>Livraison à domicile</h3><p>Vos produits livrés à l'adresse de votre choix.</p></div>
+    <div><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/></svg><h3>Paiement à la livraison</h3><p>Aucun paiement en ligne : vous réglez à la réception.</p></div>
+    <div><svg viewBox="0 0 24 24"><path d="M6 9a6 6 0 1 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg><h3>Suivi par notification</h3><p>Suivez chaque étape de votre commande.</p></div>
+  </section>
+
+  <footer class="foot">
+    <div class="foot-in"><span class="brand light"><img src="/icons/logo.svg" alt="" width="34" height="34"><span>CCM<b>-NONSAKA</b></span></span><a class="foot-wa" href="https://wa.me/2250141525104?text=Bonjour%20CCM-NONSAKA%2C%20j%27aimerais%20avoir%20des%20informations." target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3z"/><path d="M9 8.3c.1 3 2.6 5.6 6 6.6l1.2-1.4-2-1-.9.8c-1-.4-2-1.4-2.4-2.4l.8-.9-1-2z"/></svg>WhatsApp : 01 41 52 51 04</a><small>© CCM-NONSAKA — Produits bio</small></div>
+    <div class="flag" aria-hidden="true"><i></i><i></i><i></i></div>
+  </footer>
+
+  <aside id="menu" class="drawer left" aria-hidden="true" aria-label="Menu">
+    <div class="drawer-head"><h2>Menu</h2><button class="x" data-close aria-label="Fermer">✕</button></div>
+    <nav class="menu-list">
+      <p class="menu-title">Catégories</p>
+      <div id="menu-cats"></div>
+      <p class="menu-title">Mon compte</p>
+      <button class="menu-item" id="menu-track">Suivre ma commande</button>
+      <a class="menu-item wa-item" href="https://wa.me/2250141525104?text=Bonjour%20CCM-NONSAKA%2C%20j%27aimerais%20avoir%20des%20informations." target="_blank" rel="noopener">Écrire sur WhatsApp <span>01 41 52 51 04</span></a>
+      <button class="menu-item" id="btn-notif" hidden>Activer les notifications</button>
+      <button class="menu-item" id="btn-install" hidden>Installer l'application</button>
+    </nav>
+  </aside>
+
+  <aside id="drawer" class="drawer" aria-hidden="true" aria-label="Panier">
+    <div class="drawer-head"><h2>Mon panier</h2><button class="x" data-close aria-label="Fermer">✕</button></div>
+    <div id="cart-lines" class="lines"></div>
+    <form id="checkout" class="checkout" autocomplete="on">
+      <div class="total"><span>Total</span><strong id="cart-total">0 FCFA</strong></div>
+      <label>Nom complet<input name="name" required minlength="2" maxlength="80" autocomplete="name"></label>
+      <label>Téléphone<input name="phone" type="tel" required pattern="[+0-9][0-9 .\-]{5,19}" autocomplete="tel"></label>
+      <label>Adresse de livraison<textarea name="address" required minlength="5" maxlength="300" rows="2" autocomplete="street-address"></textarea></label>
+      <label>Note (facultatif)<input name="note" maxlength="300"></label>
+      <label class="check"><input type="checkbox" id="opt-push" checked> Me prévenir par notification de l'avancement</label>
+      <p id="form-error" class="error" role="alert" hidden></p>
+      <button class="btn primary big" type="submit">Commander · paiement à la livraison</button>
+    </form>
+  </aside>
+  <div id="overlay" class="overlay" hidden></div>
+
+  <dialog id="dlg-prod" class="prod-dlg">
+    <button class="x close" data-dclose aria-label="Fermer">✕</button>
+    <div class="pd-pic" id="pd-pic"></div>
+    <div class="pd-info">
+      <span class="cat" id="pd-cat"></span>
+      <h2 id="pd-name"></h2>
+      <p class="pd-price" id="pd-price"></p>
+      <p class="pd-desc" id="pd-desc"></p>
+      <div class="pd-usage" id="pd-usage" hidden>
+        <h3>Mode d'emploi</h3>
+        <p id="pd-usage-text"></p>
+        <small>Médicament traditionnel : il ne remplace pas un avis médical. En cas de doute ou de maladie, consultez un professionnel de santé.</small>
+      </div>
+      <p class="stock" id="pd-stock"></p>
+      <a class="pd-wa" id="pd-wa" href="https://wa.me/2250141525104?text=Bonjour%20CCM-NONSAKA%2C%20j%27aimerais%20avoir%20des%20informations." target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3z"/><path d="M9 8.3c.1 3 2.6 5.6 6 6.6l1.2-1.4-2-1-.9.8c-1-.4-2-1.4-2.4-2.4l.8-.9-1-2z"/></svg>Poser une question sur WhatsApp</a>
+      <div class="pd-buy"><div class="qty big" id="pd-qty"><button type="button" data-q="-1" aria-label="Moins">−</button><span id="pd-n">1</span><button type="button" data-q="1" aria-label="Plus">+</button></div>
+        <button class="btn primary" id="pd-add" type="button">Ajouter au panier</button></div>
+    </div>
+  </dialog>
+  <dialog id="dlg-done"><h2>Merci pour votre commande</h2><p>Elle est bien enregistrée. Voici votre code de suivi :</p><p class="code" id="done-code"></p><p class="muted">Conservez-le pour suivre votre commande.</p><a class="btn wa-btn" id="done-wa" href="https://wa.me/2250141525104?text=Bonjour%20CCM-NONSAKA%2C%20j%27aimerais%20avoir%20des%20informations." target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3z"/><path d="M9 8.3c.1 3 2.6 5.6 6 6.6l1.2-1.4-2-1-.9.8c-1-.4-2-1.4-2.4-2.4l.8-.9-1-2z"/></svg>Nous écrire sur WhatsApp</a> <button class="btn ghost" data-dclose>Fermer</button></dialog>
+  <dialog id="dlg-track"><h2>Suivre ma commande</h2>
+    <form id="track-form"><input id="track-code" placeholder="CCM-XXXXXX" required maxlength="20" autocapitalize="characters" aria-label="Code de commande"><button class="btn primary">Voir</button></form>
+    <div id="track-result"></div><button class="btn ghost" data-dclose>Fermer</button></dialog>
+  <a class="wa-fab" href="https://wa.me/2250141525104?text=Bonjour%20CCM-NONSAKA%2C%20j%27aimerais%20avoir%20des%20informations." target="_blank" rel="noopener" aria-label="Nous écrire sur WhatsApp au 01 41 52 51 04" title="Nous écrire sur WhatsApp"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3z"/><path d="M9 8.3c.1 3 2.6 5.6 6 6.6l1.2-1.4-2-1-.9.8c-1-.4-2-1.4-2.4-2.4l.8-.9-1-2z"/></svg><span>WhatsApp</span></a>
+  <div id="toast" class="toast" role="status"></div>
+  <!--BOOT_DATA-->
+  <script src="/assets/shop.js" type="module"></script>
+</body>
+</html>

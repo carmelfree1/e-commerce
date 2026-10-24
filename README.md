@@ -58,3 +58,6 @@ Page `/admin/forgot.html` (lien sur la page de connexion) : l'admin saisit son e
 
 ## Mise en ligne
 Voir [DEPLOY.md](DEPLOY.md) : Render (Starter) + Neon + nom de domaine, avec `render.yaml` prêt à l'emploi. Les photos produits sont stockées dans la base de données (elles survivent aux redéploiements).
+
+## Skill « web-security-audit » (réutilisable)
+`.claude/skills/web-security-audit/` : méthode d'audit de sécurité, règles d'engagement, scripts génériques (reconnaissance, scan de secrets Git, limitation de débit derrière un proxy, charge légère, faux SMTP, faux service push), catalogue des failles rencontrées et exemples complets. Installation pour tous vos projets : `node .claude/skills/web-security-audit/install.mjs`.

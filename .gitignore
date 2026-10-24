@@ -26,6 +26,7 @@ pgdata/
 *.log
 .DS_Store
 Thumbs.db
-.claude/
+.claude/*
+!.claude/skills/
 .vscode/
 .idea/

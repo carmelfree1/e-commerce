@@ -1,4 +1,4 @@
-import type { CheckoutPayload } from '../../shared/types';
+import type { CheckoutPayload, OrderResult } from '../../shared/types';
 import { $, $$, esc, errMsg, fmt, pulse, toast } from '../shared/dom';
 import { send } from '../shared/api';
 import { getSubscription } from '../shared/push';
@@ -53,7 +53,7 @@ export function openPanel(which: PanelName): void {
   $('#overlay').hidden = !which;
 }
 
-export function initCart(onOrdered: (code: string) => void): void {
+export function initCart(onOrdered: (res: OrderResult | null) => void): void {
   $('#cart-lines').addEventListener('click', (e) => {
     const b = (e.target as HTMLElement).closest<HTMLElement>('[data-d]');
     if (b) addToCart(Number(b.dataset.id), Number(b.dataset.d));
@@ -79,12 +79,12 @@ export function initCart(onOrdered: (code: string) => void): void {
         name: field('name'), phone: field('phone'), address: field('address'), note: field('note'), subscription,
         items: Object.entries(store.cart).map(([id, qty]) => ({ id: Number(id), qty })),
       };
-      const res = await send<{ code: string }>('/api/orders', payload);
+      const res = await send<OrderResult>('/api/orders', payload);
       store.cart = {}; saveCart(); form.reset(); openPanel(null);
-      onOrdered(res.code);
+      onOrdered(res);
     } catch (x) {
       err.textContent = errMsg(x); err.hidden = false;
-      onOrdered('');
+      onOrdered(null);
     } finally {
       btn.disabled = !Object.keys(store.cart).length;
     }

@@ -80,6 +80,13 @@ export interface TrackedOrder {
   items: OrderLine[];
 }
 
+/** Réponse à la création d'une commande : le message WhatsApp est déjà rédigé par le serveur. */
+export interface OrderResult {
+  code: string;
+  total: number;
+  whatsappUrl: string;
+}
+
 export interface PushSubscriptionJSON {
   endpoint: string;
   expirationTime?: number | null;

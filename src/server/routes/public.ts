@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import { pool, tx } from '../db.js';
 import { getPublicProducts, invalidateProducts } from '../cache.js';
 import { LIMITS } from '../limits.js';
+import { orderWhatsappUrl } from '../whatsapp.js';
 import { HttpError, rateLimiter, toInt, toStr } from '../security.js';
 import { background, isValidSubscription, pushToRole, saveSubscription, vapidPublicKey } from '../push.js';
 import { LOW_STOCK, STATUS_LABEL, type CheckoutPayload, type OrderStatus, type TrackedOrder } from '../../shared/types.js';
@@ -94,11 +95,14 @@ publicRouter.post('/orders', async (req, res) => {
       await c.query('INSERT INTO order_items(order_id, product_id, name, price, qty, image) VALUES ($1,$2,$3,$4,$5,$6)',
         [orderId, p.id, p.name, p.price, wanted.get(p.id), p.image]);
     }
-    return { code, total, low };
+    const lines = prods.map((p) => ({ name: p.name, price: p.price, qty: wanted.get(p.id)! }));
+    return { code, total, low, lines };
   });
 
   invalidateProducts();
-  res.status(201).json({ code: order.code, total: order.total });
+  // La commande est reçue sur WhatsApp : le serveur rédige le message (prix et noms réels, jamais ceux envoyés par le navigateur).
+  const whatsappUrl = orderWhatsappUrl({ code: order.code, customerName: name, phone, address, note, total: order.total, lines: order.lines });
+  res.status(201).json({ code: order.code, total: order.total, whatsappUrl });
   background(pushToRole('admin', {
     title: 'Nouvelle commande', url: '/admin/#commandes',
     body: `${order.code} — ${name} — ${order.total.toLocaleString('fr-FR')} FCFA`,

@@ -61,3 +61,8 @@ Voir [DEPLOY.md](DEPLOY.md) : Render (Starter) + Neon + nom de domaine, avec `re
 
 ## Skill « web-security-audit » (réutilisable)
 `.claude/skills/web-security-audit/` : méthode d'audit de sécurité, règles d'engagement, scripts génériques (reconnaissance, scan de secrets Git, limitation de débit derrière un proxy, charge légère, faux SMTP, faux service push), catalogue des failles rencontrées et exemples complets. Installation pour tous vos projets : `node .claude/skills/web-security-audit/install.mjs`.
+
+## Commandes reçues sur WhatsApp (branche `main`) et branche `recyclage`
+
+- **`main`** : à la validation du panier, la commande est enregistrée (stock réservé, visible dans l'admin) **et** le serveur rédige un message prêt à envoyer (code, client, téléphone, adresse, articles, total). Le client touche le bouton « Envoyer ma commande sur WhatsApp » qui ouvre `wa.me/2250141525104` avec ce message. Les prix viennent toujours du serveur et les retours à la ligne saisis par le client sont neutralisés (`src/server/whatsapp.ts`). Test : `AUDIT_PW=<mdp> node tests/security/whatsapp-local.mjs`.
+- **`recyclage`** : la version précédente (commande validée sur le site, sans passage par WhatsApp), conservée telle quelle. Pour la déployer, créez un second service Render (nom différent) et une base Neon séparée, avec la branche `recyclage` et son propre `.env`.

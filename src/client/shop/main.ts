@@ -2,7 +2,6 @@ import type { PublicProduct } from '../../shared/types';
 import { $, $$, toast } from '../shared/dom';
 import { api, send } from '../shared/api';
 import { getSubscription, pushSupported, registerServiceWorker } from '../shared/push';
-import { whatsappLink } from '../../shared/contact';
 import { store } from './state';
 import { initCatalog, renderCatalog, setCategory } from './catalog';
 import { initCart, openPanel, reconcileCart, renderCart } from './cart';
@@ -49,11 +48,11 @@ $$('[data-dclose]').forEach((b) => b.addEventListener('click', () => b.closest('
 /* ----- Modules ----- */
 initCatalog();
 initTrack();
-initCart((code) => {
-  if (code) {
-    try { localStorage.setItem('ccm-last', code); } catch { /* ignoré */ }
-    $('#done-code').textContent = code;
-    $<HTMLAnchorElement>('#done-wa').href = whatsappLink(`Bonjour CCM-NONSAKA, j'ai passé la commande ${code}.`);
+initCart((res) => {
+  if (res) {
+    try { localStorage.setItem('ccm-last', res.code); localStorage.setItem('ccm-last-wa', JSON.stringify({ code: res.code, url: res.whatsappUrl })); } catch { /* ignoré */ }
+    $('#done-code').textContent = res.code;
+    $<HTMLAnchorElement>('#done-wa').href = res.whatsappUrl;
     $<HTMLDialogElement>('#dlg-done').showModal();
   }
   void load();

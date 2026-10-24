@@ -136,3 +136,7 @@ La base de test (PGlite) n'a qu'une session : les tests de concurrence valident 
 | La base serverless (Neon) ne dormait jamais | Catalogue en mémoire 10 min (`CATALOG_CACHE_SECONDS`), vidé à chaque écriture ; interrogation du panneau admin toutes les 2 min | C1–C4 : modification directe invisible tant que le cache vit, mais **toute écriture applicative apparaît tout de suite** ; 300 visites → 0 lecture SQL du catalogue |
 
 Non-régression : destructif 11/11, photos 10/10, attaques 29/29 et 17/17, limites et cache 12/12, 0 erreur 500. Compromis : une modification **directe** en base (hors application) peut mettre jusqu'à 10 minutes à apparaître sur le site ; avec plusieurs instances du serveur, mettre `CATALOG_CACHE_SECONDS=5`.
+
+## Contrôle complémentaire : commande par WhatsApp
+
+Test local `tests/security/whatsapp-local.mjs` : 8/8 (lien correct, contenu du message, prix et total du navigateur ignorés, retours à la ligne neutralisés, panier de 50 lignes plafonné à 1 715 caractères, accents et caractères spéciaux, suivi public sans donnée personnelle, commande enregistrée avec stock réservé). Non-régression : attaques 29/29 et 17/17, robustesse 11/11, images 10/10, limites 12/12.

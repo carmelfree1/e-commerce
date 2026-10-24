@@ -17,16 +17,10 @@ export function createApp() {
 
   // IP réelle du visiteur. Derrière Render, `trust proxy` seul donne l'IP d'un relais interne (la même pour tous les visiteurs ou
   // changeante d'une requête à l'autre) : toute la limitation de débit par IP devenait inopérante. On lit donc l'en-tête posé par Cloudflare.
-  let ipLogs = 0;
   app.use((req, _res, next) => {
     if (config.clientIpHeader) {
       const v = req.get(config.clientIpHeader)?.trim();
       if (v && net.isIP(v)) Object.defineProperty(req, 'ip', { value: v, configurable: true });
-    }
-    // Diagnostic TEMPORAIRE (Render uniquement, 15 lignes max par démarrage) pour vérifier la chaîne de proxys réelle.
-    if (process.env.RENDER === 'true' && ipLogs < 15 && req.path.startsWith('/api/orders/')) {
-      ipLogs++;
-      audit('ip_debug', { ip: req.ip, ips: req.ips, xff: req.get('x-forwarded-for'), cf: req.get('cf-connecting-ip'), peer: req.socket.remoteAddress });
     }
     next();
   });

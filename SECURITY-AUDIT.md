@@ -67,3 +67,33 @@ TRUST_PROXY=1 ADMIN_PASSWORD=<mot-de-passe-de-test-long> PORT=3100 npm run dev
 AUDIT_PW=<même-mot-de-passe> npm run test:security
 ```
 Les scripts ne ciblent que `localhost`. La phase 2 verrouille volontairement le compte de test (test de force brute) : redémarrez le serveur ensuite.
+
+---
+
+# Audit n°2 — site déployé (Render + Neon + Cloudflare)
+
+Date : 24 octobre 2026 · Cible : `https://ccm-nonsaka.onrender.com` · Méthode : 24 contrôles **non destructifs** (`tests/security/remote-scan.mjs`), reconnaissance, analyse du dépôt GitHub et de son historique. Aucune écriture en base, aucun email envoyé, aucun essai sur le vrai compte admin, pas de test de charge.
+
+## Failles trouvées
+
+| # | Sévérité | Constat (preuve) | Correctif |
+|---|---|---|---|
+| 1 | **Haute** | **La limitation de débit par IP ne fonctionne pas en production** : 34 requêtes de suivi de commande (limite 30/min) sont toutes passées. Derrière Render, `trust proxy=1` donne l'IP d'un relais interne, pas celle du visiteur : les compteurs par IP (commandes 10/10 min, suivi, inscriptions push, plafond global, blocage de connexion par IP) étaient inopérants. Seuls les verrous **par compte** (connexion, mot de passe oublié) fonctionnaient. | L'IP réelle est lue dans `CF-Connecting-IP` (posé par Cloudflare ; les clients ne peuvent pas le forger : Cloudflare renvoie une erreur 1000). Activé automatiquement sur Render (`RENDER=true`). Vérifié en local ; **à revérifier sur le site après redéploiement** (R1–R3). Un journal de diagnostic temporaire (15 lignes) permet de contrôler la chaîne de proxys. |
+| 2 | Basse | La page 404 affichait « Cannot GET … » (signature d'Express). | Page 404 générique. |
+| 3 | Moyenne (exposition) | **Le dépôt GitHub est public.** Le code n'expose aucun secret (vérifié sur tout l'historique), mais l'adresse email de l'administrateur est aussi l'email d'auteur des commits : l'identifiant de connexion est public (ciblage, hameçonnage, verrouillage du compte par 8 essais). L'ancien projet PHP est dans l'historique (`config.php` avec mot de passe de base **vide**, `database.sql` avec un compte administrateur d'exemple). | À faire par vous : dépôt en **privé**, adresse admin **différente** de l'email de commit, email de commit « noreply » GitHub. Voir la section ci-dessous. |
+
+## Ce qui a résisté
+- **TLS 1.2 et 1.3 uniquement**, HSTS (1 an), HTTP → HTTPS (301), CSP stricte, nosniff, Permissions-Policy, pas de X-Powered-By.
+- **Aucun fichier sensible exposé** : `.env`, `.git`, `package.json`, `dist`, `src`, `*.map`, `render.yaml`, tests, scripts… tous en 404 (25 chemins testés).
+- **Pare-feu Cloudflare** : les charges d'injection SQL sont bloquées en 403 avant même d'atteindre l'application ; l'en-tête `CF-Connecting-IP` forgé est refusé.
+- 16 routes admin refusent l'accès sans session ; cookies falsifiés (`__Host-adm`) rejetés ; SSRF via abonnement push (8 variantes) refusé ; CSRF (Origin, Sec-Fetch-Site, text/plain) refusé ; pas de CORS ; commandes aberrantes refusées ; upload impossible sans connexion ; JSON malformé / trop gros / traversée de chemin sans fuite.
+- Verrous par compte efficaces : connexion (429 dès le 9ᵉ échec) et mot de passe oublié (429 dès la 4ᵉ demande).
+
+## Non testé (demande des identifiants ou serait destructif)
+Fonctions admin authentifiées en ligne (XSS stocké avec de vraies données, upload avec session) — testées en local au premier audit ; commandes valides (écriture en base) ; charge / déni de service ; envoi réel d'emails ; sécurité de vos comptes GitHub, Render, Neon, Cloudflare/registrar (activez la **double authentification** partout) ; exposition réseau de la base Neon.
+
+## À faire de votre côté (rien à coder)
+1. **GitHub > Settings > General > Danger Zone > Change visibility > Private.** Render continue de déployer un dépôt privé.
+2. **Changer l'email de connexion admin** pour une adresse non publique (Admin > Mon compte), différente de celle des commits.
+3. **GitHub > Settings > Emails** : cocher « Keep my email addresses private » et « Block command line pushes that expose my email », puis `git config --global user.email "<identifiant>+carmelfree1@users.noreply.github.com"`. Les anciens commits gardent l'ancienne adresse sauf réécriture de l'historique.
+4. Double authentification sur GitHub, Render, Neon, Cloudflare. Mot de passe admin long et unique.

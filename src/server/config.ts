@@ -28,5 +28,12 @@ export const config = {
    * Par défaut : 1 en production (HTTPS impose un proxy), 0 en développement. Mal réglé, ce paramètre
    * permettrait à un attaquant de falsifier son IP et de contourner la limitation de débit.
    */
+  /**
+   * En-tête portant l'IP réelle du visiteur, posée par Cloudflare (Render est placé derrière Cloudflare) : « cf-connecting-ip ».
+   * Cloudflare refuse les requêtes où le client forge cet en-tête, donc il est fiable tant que le site n'est joignable que via Cloudflare.
+   * Sur Render (variable RENDER=true) il est activé automatiquement ; vide ailleurs. N'activez JAMAIS un en-tête qui n'est pas posé
+   * par un proxy de confiance : n'importe qui pourrait se faire passer pour une autre IP.
+   */
+  clientIpHeader: (process.env.CLIENT_IP_HEADER ?? (process.env.RENDER === 'true' ? 'cf-connecting-ip' : '')).trim().toLowerCase(),
   trustProxy: process.env.TRUST_PROXY !== undefined ? (Number(process.env.TRUST_PROXY) || false) : (process.env.NODE_ENV === 'production' ? 1 : false),
 };

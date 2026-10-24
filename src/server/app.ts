@@ -2,6 +2,7 @@ import express, { type NextFunction, type Request, type Response } from 'express
 import helmet from 'helmet';
 import compression from 'compression';
 import path from 'node:path';
+import net from 'node:net';
 import { config } from './config.js';
 import { HttpError, audit, rateLimiter } from './security.js';
 import { publicRouter } from './routes/public.js';
@@ -13,6 +14,22 @@ export function createApp() {
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', config.trustProxy);
+
+  // IP réelle du visiteur. Derrière Render, `trust proxy` seul donne l'IP d'un relais interne (la même pour tous les visiteurs ou
+  // changeante d'une requête à l'autre) : toute la limitation de débit par IP devenait inopérante. On lit donc l'en-tête posé par Cloudflare.
+  let ipLogs = 0;
+  app.use((req, _res, next) => {
+    if (config.clientIpHeader) {
+      const v = req.get(config.clientIpHeader)?.trim();
+      if (v && net.isIP(v)) Object.defineProperty(req, 'ip', { value: v, configurable: true });
+    }
+    // Diagnostic TEMPORAIRE (Render uniquement, 15 lignes max par démarrage) pour vérifier la chaîne de proxys réelle.
+    if (process.env.RENDER === 'true' && ipLogs < 15 && req.path.startsWith('/api/orders/')) {
+      ipLogs++;
+      audit('ip_debug', { ip: req.ip, ips: req.ips, xff: req.get('x-forwarded-for'), cf: req.get('cf-connecting-ip'), peer: req.socket.remoteAddress });
+    }
+    next();
+  });
   app.use(helmet({
     contentSecurityPolicy: {
       directives: {
@@ -88,6 +105,16 @@ export function createApp() {
       if (/[\\/]icons[\\/]/.test(file)) res.set('Cache-Control', 'public, max-age=604800');
     },
   }));
+
+  // Page 404 générique (la page par défaut d'Express révèle la technologie : « Cannot GET »).
+  app.use((req, res, next) => {
+    if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+    res.status(404).set('Cache-Control', 'no-store').type('html').send(
+      '<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Page introuvable</title>'
+      + '<body style="font-family:system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;margin:0;background:#f4f6f4;color:#111a14;text-align:center">'
+      + '<div><h1 style="margin:0 0 8px">Page introuvable</h1><p style="color:#667068">Cette page n\'existe pas ou a été déplacée.</p>'
+      + '<a href="/" style="display:inline-block;margin-top:12px;background:#0f5a2c;color:#fff;text-decoration:none;padding:10px 22px;border-radius:999px;font-weight:700">Retour à la boutique</a></div></body></html>');
+  });
 
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
     const e = err as { type?: string; status?: number; message?: string };

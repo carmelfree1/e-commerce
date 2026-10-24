@@ -19,6 +19,7 @@ services:
         value: production
       - key: TRUST_PROXY       # Render place un proxy HTTPS devant l'application
         value: "1"
+      # L'IP réelle du visiteur est lue dans l'en-tête cf-connecting-ip (activé automatiquement sur Render, voir src/server/config.ts)
       - key: SEED_DEMO
         value: "0"
       - key: DB_POOL_MAX

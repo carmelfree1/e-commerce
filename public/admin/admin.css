@@ -315,3 +315,9 @@ body.no-scroll{overflow:hidden}
 .steps-dots{display:flex;gap:6px;justify-content:center}
 .steps-dots i{width:34px;height:4px;border-radius:99px;background:var(--grey-l)}.steps-dots i.on{background:var(--green)}
 .linkbtn{border:0;background:none;color:var(--green-d);font-weight:700;cursor:pointer;font-size:.88rem;padding:4px}.linkbtn:disabled{color:var(--muted);cursor:default}
+
+/* Logo rond */
+.logo img{border-radius:50%;background:#fff;object-fit:cover}
+.login-art .logo img{width:60px;height:60px}
+.login-logo{align-self:center;border-radius:50%;box-shadow:0 8px 24px -10px #0f5a2c88}
+@media(max-width:760px){.login-logo{width:76px;height:76px}}

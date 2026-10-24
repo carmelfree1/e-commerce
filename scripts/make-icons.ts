@@ -1,58 +1,32 @@
-// Génère les icônes PNG de la PWA (vert / blanc / rouge) sans dépendance.
-import zlib from 'node:zlib';
+// Génère toutes les images de marque à partir du logo d'origine (branding/logo-source.webp) :
+// logo web, icônes PWA (normale + « maskable »), icône iOS et favicons.
+// Usage : npm run icons   (sharp est une dépendance de développement ; les images générées sont versionnées)
 import fs from 'node:fs';
+import sharp from 'sharp';
 
-type RGB = [number, number, number];
-const GREEN: RGB = [27, 127, 59], WHITE: RGB = [255, 255, 255], RED: RGB = [214, 40, 40], DEEP: RGB = [14, 90, 40];
+const SOURCE = 'branding/logo-source.webp';
+const OUT = 'public/icons';
+const WHITE = { r: 255, g: 255, b: 255, alpha: 1 };
 
-function pixel(u: number, v: number): RGB {
-  const dx = u - 0.5, dy = v - 0.5;
-  if (Math.hypot(dx, dy) > 0.36) return GREEN;
-  const c = Math.SQRT1_2, x = dx * c + dy * c, y = -dx * c + dy * c;
-  if ((x / 0.30) ** 2 + (y / 0.13) ** 2 <= 1) {
-    if (Math.abs(y) < 0.008 && x > -0.3) return WHITE;
-    return x > 0.1 && y < 0 ? DEEP : GREEN;
-  }
-  if (Math.hypot(dx - 0.2, dy + 0.2) < 0.045) return RED;
-  return WHITE;
+fs.mkdirSync(OUT, { recursive: true });
+const logo = (size: number) => sharp(SOURCE).resize(size, size, { fit: 'cover' });
+
+const jobs: [string, Promise<unknown>][] = [
+  // Logo affiché dans les en-têtes (affiché à 40–64 px : 256 px suffit pour les écrans Retina)
+  ['logo.webp', logo(256).webp({ quality: 90 }).toFile(`${OUT}/logo.webp`)],
+  // Icônes PWA
+  ['icon-96.png', logo(96).png({ compressionLevel: 9 }).toFile(`${OUT}/icon-96.png`)],
+  ['icon-192.png', logo(192).png({ compressionLevel: 9 }).toFile(`${OUT}/icon-192.png`)],
+  ['icon-512.png', logo(512).png({ compressionLevel: 9 }).toFile(`${OUT}/icon-512.png`)],
+  // Icône « maskable » : le système peut la rogner (cercle, carré arrondi…) ; le logo est réduit à 78 % pour rester dans la zone sûre
+  ['icon-maskable-512.png', sharp({ create: { width: 512, height: 512, channels: 4, background: WHITE } })
+    .composite([{ input: await logo(400).png().toBuffer(), gravity: 'centre' }]).png({ compressionLevel: 9 }).toFile(`${OUT}/icon-maskable-512.png`)],
+  // iOS (Ajouter à l'écran d'accueil) et favicons
+  ['apple-touch-icon.png', logo(180).png({ compressionLevel: 9 }).toFile(`${OUT}/apple-touch-icon.png`)],
+  ['favicon-32.png', logo(32).png({ compressionLevel: 9 }).toFile(`${OUT}/favicon-32.png`)],
+];
+
+for (const [name, job] of jobs) {
+  await job;
+  console.log(`✔ ${OUT}/${name}  (${(fs.statSync(`${OUT}/${name}`).size / 1024).toFixed(1)} Ko)`);
 }
-
-const crcTable = Array.from({ length: 256 }, (_, n) => {
-  let c = n;
-  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-  return c >>> 0;
-});
-const crc = (buf: Buffer) => {
-  let c = 0xffffffff;
-  for (const b of buf) c = crcTable[(c ^ b) & 255] ^ (c >>> 8);
-  return (c ^ 0xffffffff) >>> 0;
-};
-const chunk = (type: string, data: Buffer) => {
-  const len = Buffer.alloc(4); len.writeUInt32BE(data.length);
-  const td = Buffer.concat([Buffer.from(type), data]);
-  const sum = Buffer.alloc(4); sum.writeUInt32BE(crc(td));
-  return Buffer.concat([len, td, sum]);
-};
-
-function png(size: number): Buffer {
-  const stride = size * 4 + 1, S = 3;
-  const raw = Buffer.alloc(stride * size);
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      let r = 0, g = 0, b = 0;
-      for (let i = 0; i < S; i++) for (let j = 0; j < S; j++) {
-        const p = pixel((x + (i + 0.5) / S) / size, (y + (j + 0.5) / S) / size);
-        r += p[0]; g += p[1]; b += p[2];
-      }
-      const o = y * stride + 1 + x * 4, n = S * S;
-      raw[o] = r / n; raw[o + 1] = g / n; raw[o + 2] = b / n; raw[o + 3] = 255;
-    }
-  }
-  const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(size, 0); ihdr.writeUInt32BE(size, 4); ihdr[8] = 8; ihdr[9] = 6;
-  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
-}
-
-fs.mkdirSync('public/icons', { recursive: true });
-for (const s of [96, 192, 512]) fs.writeFileSync(`public/icons/icon-${s}.png`, png(s));
-console.log('Icônes générées.');

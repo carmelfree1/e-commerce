@@ -194,3 +194,6 @@ dialog h2{margin-top:0;color:var(--green-d);font-size:1.5rem;margin-bottom:10px}
 .wa-item span{color:var(--muted);font-weight:500;font-size:.85rem}
 @media(max-width:520px){.wa-fab span{display:none}.wa-fab{padding:14px}.toast{bottom:84px}}
 @media print{.wa-fab{display:none}}
+
+/* Logo rond (le badge occupe toute l'image) */
+.brand img{border-radius:50%;background:#fff;object-fit:cover}

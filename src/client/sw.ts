@@ -1,8 +1,8 @@
 export {};
 declare const self: ServiceWorkerGlobalScope;
 
-const CACHE = 'ccm-v7';
-const SHELL = ['/', '/css/style.css', '/assets/shop.js', '/icons/logo.svg', '/icons/icon-192.png', '/manifest.webmanifest'];
+const CACHE = 'ccm-v8';
+const SHELL = ['/', '/css/style.css', '/assets/shop.js', '/icons/logo.webp', '/icons/icon-192.png', '/manifest.webmanifest'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

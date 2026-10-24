@@ -136,10 +136,26 @@ setInterval(() => {
 }, 60_000).unref();
 
 /* ---------- Lecture / validation d'entrées ---------- */
-export const toInt = (v: unknown): number =>
-  (typeof v === 'number' || (typeof v === 'string' && /^\d+$/.test(v.trim()))) && Number.isInteger(Number(v)) ? Number(v) : NaN;
+/** Plus grand entier accepté par PostgreSQL (colonne `integer`) : au-delà, la base renverrait une erreur 500. */
+export const INT_MAX = 2_147_483_647;
 
-export const toStr = (v: unknown, max: number): string => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+/** Entier positif ou nul tenant dans une colonne `integer`, sinon NaN. */
+export const toInt = (v: unknown): number => {
+  if (!(typeof v === 'number' || (typeof v === 'string' && /^\d+$/.test(v.trim())))) return NaN;
+  const n = Number(v);
+  return Number.isInteger(n) && n >= 0 && n <= INT_MAX ? n : NaN;
+};
+
+const NUL = String.fromCharCode(0);
+/** Texte nettoyé : espaces retirés, longueur bornée, et surtout aucun octet NUL (PostgreSQL le refuse → erreur 500). */
+export const toStr = (v: unknown, max: number): string => (typeof v === 'string' ? v.split(NUL).join('').trim().slice(0, max) : '');
+
+/** Identifiant dans une URL (/products/:id…) : refuse tout ce qui n'est pas un entier valide au lieu de laisser la base échouer. */
+export function idParam(v: unknown): number {
+  const n = toInt(v);
+  if (!(n > 0)) throw new HttpError(404, 'Introuvable');
+  return n;
+}
 
 /* ---------- Journal de sécurité (JSON, une ligne par évènement) ---------- */
 export function audit(event: string, details: Record<string, unknown> = {}): void {

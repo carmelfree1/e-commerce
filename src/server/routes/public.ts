@@ -13,6 +13,7 @@ const subscribeLimit = rateLimiter(20, 3600e3);
 const limited = (l: ReturnType<typeof rateLimiter>, req: { ip?: string }) => {
   if (!l.take(req.ip || '')) throw new HttpError(429, 'Trop de requêtes, réessayez plus tard.');
 };
+const MAX_ORDER_TOTAL = 2_000_000_000; // la colonne `total` est un entier 32 bits
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const newCode = () => 'CCM-' + Array.from(crypto.randomBytes(6), (x) => ALPHABET[x % 32]).join('');
 
@@ -74,6 +75,7 @@ publicRouter.post('/orders', async (req, res) => {
       if (p.stock < qty) throw new HttpError(409, p.stock === 0 ? `« ${p.name} » est en rupture de stock.` : `« ${p.name} » : il ne reste que ${p.stock} en stock.`);
       await c.query('UPDATE products SET stock = stock - $1 WHERE id = $2', [qty, p.id]);
       total += p.price * qty;
+      if (total > MAX_ORDER_TOTAL) throw new HttpError(400, 'Montant de commande trop élevé : contactez-nous directement.');
       if (p.stock - qty <= LOW_STOCK) low.push({ name: p.name, left: p.stock - qty });
     }
 
@@ -108,6 +110,7 @@ publicRouter.post('/orders', async (req, res) => {
 publicRouter.get('/orders/:code', async (req, res) => {
   limited(trackLimit, req);
   const code = String(req.params.code).toUpperCase();
+  if (!/^CCM-[A-Z0-9]{6}$/.test(code)) throw new HttpError(404, 'Commande introuvable'); // format invalide : inutile (et risqué) d'interroger la base
   const { rows } = await pool.query<Omit<TrackedOrder, 'statusLabel'> & { id: number }>(
     'SELECT id, code, status, total, created_at AS "createdAt" FROM orders WHERE code = $1', [code]);
   const o = rows[0];

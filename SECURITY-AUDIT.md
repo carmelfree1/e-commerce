@@ -97,3 +97,31 @@ Fonctions admin authentifiées en ligne (XSS stocké avec de vraies données, up
 2. **Changer l'email de connexion admin** pour une adresse non publique (Admin > Mon compte), différente de celle des commits.
 3. **GitHub > Settings > Emails** : cocher « Keep my email addresses private » et « Block command line pushes that expose my email », puis `git config --global user.email "<identifiant>+carmelfree1@users.noreply.github.com"`. Les anciens commits gardent l'ancienne adresse sauf réécriture de l'historique.
 4. Double authentification sur GitHub, Render, Neon, Cloudflare. Mot de passe admin long et unique.
+
+---
+
+# Audit n°3 — tests destructifs, résilience et charge
+
+Date : 24 octobre 2026. Les tests **destructifs** ont été exécutés uniquement sur une **copie locale jetable** (base PGlite identique au schéma de production) : jamais sur le site en ligne, qui n'a reçu qu'un test de charge léger en lecture seule. Scripts : `tests/security/destructive-local.mjs`, `tests/security/light-load.mjs`.
+
+## Défauts trouvés et corrigés
+
+| # | Gravité | Constat | Correctif |
+|---|---|---|---|
+| 1 | Moyenne | **Dépassement d'entier → erreur 500** : prix ou stock > 2 147 483 647, montant de commande trop élevé (prix × quantité), identifiants d'URL ou d'articles énormes (`/products/99999999999`) faisaient échouer PostgreSQL. | Entiers bornés (`toInt` ≤ 2³¹−1), prix ≤ 10 M FCFA, stock ≤ 1 M, commande ≤ 2 Md FCFA, identifiants d'URL validés (404), totaux calculés en `float8`. |
+| 2 | Moyenne | **Octet NUL (`\u0000`) → erreur 500** dans les noms, descriptions, champs de commande, code de suivi (`/api/orders/CCM%00X`) et URL d'abonnement push. | Texte nettoyé (`toStr`), format du code de suivi vérifié avant toute requête, caractères de contrôle refusés dans l'endpoint push. |
+| 3 | Moyenne | **Panne de la base = boutique cassée** : la page d'accueil et le catalogue renvoyaient une erreur dès que la base était injoignable (panne, réveil de Neon). | Le dernier catalogue connu est servi pendant la panne (nouvelle tentative toutes les 5 s) ; la page se charge même sans catalogue. Reconnexion automatique vérifiée, sans redémarrage. |
+| 4 | Basse | Les messages « Migration n appliquée » s'affichaient avant la validation de la transaction. | Affichés après le succès. |
+
+## Résultats
+
+**Destructif en local — 11/11** : chaînes `DROP/TRUNCATE` dans tous les champs sans effet ; suppression d'un produit sans perte de l'historique des commandes ; 12 annulations simultanées → stock restitué **une seule fois** ; 40 ajouts de stock simultanés → exactement +40 ; commandes et retraits concurrents → aucune unité perdue ni créée ; débordements numériques et caractères piégés → refus propres ; URL/en-têtes/cookies de 20 Ko ; 12 connexions + 6 changements de mot de passe simultanés → un seul mot de passe valide ; 20 photos de 600 Ko et 15 inscriptions push identiques en parallèle → tout accepté, une seule ligne d'abonnement.
+
+**Résilience en local** : panne injectée au milieu d'une commande, d'une annulation ou d'une connexion → **tout est annulé** (stock inchangé, aucune commande orpheline, aucun verrou resté bloqué) ; migration cassée → **tout ou rien** (aucune table partielle) ; base coupée puis rallumée → dégradation propre (boutique et photos servies depuis le cache, écritures en 500 JSON) puis reprise automatique.
+
+**Charge légère sur le site en ligne (lecture seule)** : 320 requêtes (4 en parallèle) → **320 réponses 200**, latence médiane 147 ms, p95 274 ms, santé intacte. Ce n'est pas un test de déni de service.
+
+**Non-régression** : attaques 29/29, 17/17, photos 10/10, destructif 11/11 ; 0 erreur 500 côté serveur.
+
+## Limites
+La base de test (PGlite) n'a qu'une session : les tests de concurrence valident la logique (transactions, verrous `FOR UPDATE`) mais pas la contention réelle de Neon. Aucun test de déni de service (volontaire). Le site en ligne n'a subi aucun test destructif.

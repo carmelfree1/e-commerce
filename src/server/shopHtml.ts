@@ -21,7 +21,9 @@ export async function renderShop(): Promise<string> {
   if (!config.isProd || template === null) template = fs.readFileSync(indexPath, 'utf8');
   let html = template;
   for (const a of VERSIONED) html = html.replaceAll(`"${a}"`, `"${a}?v=${version(a)}"`);
-  const { json } = await getPublicProducts();
+  // Sans catalogue (base indisponible dès le démarrage) la page se charge quand même : le navigateur réessaiera via l'API.
+  const json = await getPublicProducts().then((c) => c.json).catch(() => null);
+  if (json === null) return html;
   const safe = json.replace(/</g, '\\u003c').split(String.fromCharCode(0x2028)).join('\\u2028').split(String.fromCharCode(0x2029)).join('\\u2029');
   return html.replace('<!--BOOT_DATA-->', `<script id="boot" type="application/json">${safe}</script>`);
 }

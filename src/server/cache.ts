@@ -7,6 +7,7 @@ interface Cached { json: string; etag: string; at: number }
 /** Durée de vie maximale : filet de sécurité si plusieurs instances du serveur tournent. */
 const TTL_MS = 5000;
 let cached: Cached | null = null;
+let lastGood: Cached | null = null; // dernière version connue, servie si la base est momentanément indisponible
 let loading: Promise<Cached> | null = null;
 
 /** À appeler après toute écriture qui touche aux produits ou aux stocks. */
@@ -24,6 +25,17 @@ async function load(): Promise<Cached> {
 /** Catalogue public sérialisé une seule fois, partagé par toutes les requêtes simultanées. */
 export function getPublicProducts(): Promise<Cached> {
   if (cached && Date.now() - cached.at < TTL_MS) return Promise.resolve(cached);
-  loading ??= load().then((c) => { cached = c; return c; }).finally(() => { loading = null; });
+  loading ??= load()
+    .then((c) => { cached = c; lastGood = c; return c; })
+    .catch((e) => {
+      // Base injoignable (panne, réveil de Neon…) : on sert la dernière liste connue plutôt que de casser toute la boutique.
+      if (lastGood) {
+        console.error('Catalogue servi depuis le cache (base indisponible) :', (e as Error).message);
+        cached = { ...lastGood, at: Date.now() }; // on réessaiera la base dans 5 s, pas à chaque visiteur
+        return cached;
+      }
+      throw e;
+    })
+    .finally(() => { loading = null; });
   return loading;
 }

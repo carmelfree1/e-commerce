@@ -199,6 +199,7 @@ export async function migrate(): Promise<void> {
   // Tout se passe dans UNE transaction avec un verrou « xact » : compatible avec les poolers en mode transaction
   // (Neon, Supabase, PgBouncer) qui ne gardent pas la même connexion entre deux requêtes, et sûr si deux
   // instances démarrent en même temps (la seconde attend, puis voit les migrations déjà faites).
+  const applied: number[] = [];
   await tx(async (c) => {
     await c.query('SELECT pg_advisory_xact_lock(727001)');
     await c.query('CREATE TABLE IF NOT EXISTS schema_migrations (id integer PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())');
@@ -207,9 +208,11 @@ export async function migrate(): Promise<void> {
       if (done.has(m.id)) continue;
       await c.query(m.sql);
       await c.query('INSERT INTO schema_migrations(id) VALUES ($1)', [m.id]);
-      console.log(`Migration ${m.id} appliquée.`);
+      applied.push(m.id);
     }
   });
+  // Affiché seulement une fois la transaction VALIDÉE (si une migration échoue, tout est annulé et rien n'est annoncé).
+  for (const id of applied) console.log(`Migration ${id} appliquée.`);
 }
 
 export async function getSetting(key: string, db: Db = pool): Promise<string | undefined> {

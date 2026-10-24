@@ -6,7 +6,7 @@ import { sendResetCode } from '../mailer.js';
 import { MAX_TOTAL_BYTES, MIME, saveImage, totalImageBytes } from '../images.js';
 import {
   COOKIE_NAME, HttpError, MIN_PASSWORD, SESSION_MS, audit, createSession, destroyOtherSessions, destroySession,
-  hashPassword, keyed, newSalt, rateLimiter, requireAdmin, sessionIdOf, toInt, toStr, verifyPassword,
+  hashPassword, idParam, keyed, newSalt, rateLimiter, requireAdmin, sessionIdOf, toInt, toStr, verifyPassword,
 } from '../security.js';
 import { background, isValidSubscription, pushToEndpoint, pushToRole, saveSubscription } from '../push.js';
 import crypto from 'node:crypto';
@@ -192,14 +192,14 @@ adminRouter.get('/stats', async (_req, res) => {
   // Une requête par bloc, toutes lancées en parallèle ; les agrégats d'orders passent par un seul balayage.
   const [byStatusQ, productsQ, dailyQ, topQ, lowQ, recentQ] = await Promise.all([
     pool.query<{ status: OrderStatus; n: number; total: number; today_n: number; today_total: number }>(`
-      SELECT status, COUNT(*)::int AS n, COALESCE(SUM(total), 0)::int AS total,
+      SELECT status, COUNT(*)::int AS n, COALESCE(SUM(total), 0)::float8 AS total,
              COUNT(*) FILTER (WHERE created_at >= current_date)::int AS today_n,
-             COALESCE(SUM(total) FILTER (WHERE created_at >= current_date), 0)::int AS today_total
+             COALESCE(SUM(total) FILTER (WHERE created_at >= current_date), 0)::float8 AS today_total
       FROM orders GROUP BY status`),
     pool.query<{ n: number }>('SELECT COUNT(*)::int AS n FROM products'),
     pool.query<{ day: string; revenue: number; orders: number }>(`
       SELECT to_char(d, 'YYYY-MM-DD') AS day,
-             COALESCE(SUM(o.total) FILTER (WHERE o.status <> 'annulee'), 0)::int AS revenue,
+             COALESCE(SUM(o.total) FILTER (WHERE o.status <> 'annulee'), 0)::float8 AS revenue,
              COUNT(o.id)::int AS orders
       FROM generate_series(current_date - 13, current_date, interval '1 day') d
       LEFT JOIN orders o ON o.created_at >= d AND o.created_at < d + interval '1 day'
@@ -229,11 +229,13 @@ adminRouter.get('/stats', async (_req, res) => {
 /* ----- Produits ----- */
 const PRODUCT_COLS = `id, name, description, price, category, image, stock, kind, usage, active, created_at AS "createdAt"`;
 
+const MAX_PRICE = 10_000_000, MAX_STOCK = 1_000_000;
+
 function readProduct(b: Record<string, unknown> | undefined) {
   const name = toStr(b?.name, 120), price = toInt(b?.price), stock = toInt(b?.stock);
   if (name.length < 2) throw new HttpError(400, 'Nom requis');
-  if (!(price >= 0)) throw new HttpError(400, 'Prix invalide');
-  if (!(stock >= 0)) throw new HttpError(400, 'Le stock initial est obligatoire (nombre entier ≥ 0)');
+  if (!(price >= 0) || price > MAX_PRICE) throw new HttpError(400, `Prix invalide (entier entre 0 et ${MAX_PRICE.toLocaleString('fr-FR')} FCFA)`);
+  if (!(stock >= 0) || stock > MAX_STOCK) throw new HttpError(400, `Le stock est obligatoire (nombre entier entre 0 et ${MAX_STOCK.toLocaleString('fr-FR')})`);
   const image = toStr(b?.image, 200);
   if (image && !/^\/uploads\/[\w.-]+$/.test(image)) throw new HttpError(400, 'Image invalide');
   const kind: unknown = b?.kind ?? 'produit';
@@ -262,7 +264,7 @@ adminRouter.put('/products/:id', async (req, res) => {
   const p = readProduct(req.body);
   const r = await pool.query(
     'UPDATE products SET name=$1, description=$2, price=$3, category=$4, image=$5, stock=$6, kind=$7, usage=$8, active=$9 WHERE id=$10',
-    [p.name, p.description, p.price, p.category, p.image, p.stock, p.kind, p.usage, p.active, toInt(req.params.id)]);
+    [p.name, p.description, p.price, p.category, p.image, p.stock, p.kind, p.usage, p.active, idParam(req.params.id)]);
   if (!r.rowCount) throw new HttpError(404, 'Produit introuvable');
   res.json({ ok: true });
 });
@@ -271,19 +273,19 @@ adminRouter.patch('/products/:id/stock', async (req, res) => {
   const delta = Number(req.body?.delta);
   if (!Number.isInteger(delta) || Math.abs(delta) > 100000) throw new HttpError(400, 'Quantité invalide');
   const r = await pool.query<{ stock: number }>(
-    'UPDATE products SET stock = stock + $1 WHERE id = $2 AND stock + $1 >= 0 RETURNING stock', [delta, toInt(req.params.id)]);
-  if (!r.rowCount) throw new HttpError(400, 'Le stock ne peut pas être négatif');
+    'UPDATE products SET stock = stock + $1 WHERE id = $2 AND stock + $1 BETWEEN 0 AND 1000000 RETURNING stock', [delta, idParam(req.params.id)]);
+  if (!r.rowCount) throw new HttpError(400, 'Le stock doit rester entre 0 et 1 000 000');
   res.json(r.rows[0]);
 });
 
 adminRouter.patch('/products/:id/active', async (req, res) => {
-  const r = await pool.query('UPDATE products SET active = $1 WHERE id = $2', [req.body?.active === true, toInt(req.params.id)]);
+  const r = await pool.query('UPDATE products SET active = $1 WHERE id = $2', [req.body?.active === true, idParam(req.params.id)]);
   if (!r.rowCount) throw new HttpError(404, 'Produit introuvable');
   res.json({ ok: true });
 });
 
 adminRouter.delete('/products/:id', async (req, res) => {
-  const r = await pool.query('DELETE FROM products WHERE id=$1', [toInt(req.params.id)]);
+  const r = await pool.query('DELETE FROM products WHERE id=$1', [idParam(req.params.id)]);
   audit('product_deleted', { admin: req.admin!.email, id: req.params.id });
   if (!r.rowCount) throw new HttpError(404, 'Produit introuvable');
   res.json({ ok: true });
@@ -311,7 +313,7 @@ adminRouter.get('/orders', async (req, res) => {
 });
 
 adminRouter.patch('/orders/:id/status', async (req, res) => {
-  const status: unknown = req.body?.status, id = toInt(req.params.id);
+  const status: unknown = req.body?.status, id = idParam(req.params.id);
   if (!ORDER_STATUSES.includes(status as OrderStatus)) throw new HttpError(400, 'Statut invalide');
   const next = status as OrderStatus;
 

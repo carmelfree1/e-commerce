@@ -33,6 +33,7 @@ const PUSH_HOSTS = [
 
 export function isAllowedEndpoint(endpoint: string): boolean {
   if (endpoint.length > 1000) return false;
+  for (let i = 0; i < endpoint.length; i++) if (endpoint.charCodeAt(i) < 32 || endpoint.charCodeAt(i) === 127) return false; // NUL & co. feraient échouer le stockage JSONB
   let u: URL;
   try { u = new URL(endpoint); } catch { return false; }
   if (u.protocol !== 'https:' || u.username || u.password || (u.port && u.port !== '443')) return false;

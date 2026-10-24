@@ -24,6 +24,13 @@ Utilisez-le comme liste de **ce qui casse vraiment** : chaque ligne a été trou
 | Identifiants d'URL invalides | `/products/abc`, `/products/99999999999`, `/orders/-5` | `idParam()` → 404 |
 | Base indisponible = boutique entière en erreur | arrêt de la base pendant le service | dernier catalogue connu servi (nouvelle tentative toutes les 5 s) ; page d'accueil sans catalogue plutôt qu'une erreur |
 
+## Capacité
+| Piège | Constat | Réglage |
+|---|---|---|
+| **Réseaux mobiles partagés (CGNAT)** : de nombreux clients sous une même IP publique | des limites par IP basses (10 commandes/10 min, 600 req/min) bloqueraient des clients légitimes | limites généreuses pour les actions clients, strictes pour l'administration, centralisées dans un seul fichier ; ne pas compter les lectures de catalogue en cache |
+| **Base serverless à heures de calcul limitées** (ex. Neon gratuit : 100 h/mois, veille après 5 min) | toute requête réveille la base : onglet admin qui interroge toutes les 30 s, cache catalogue de 5 s, sonde de santé → la base ne dort jamais, quota épuisé en 2–3 semaines | cache catalogue long **vidé à chaque écriture**, interrogation admin ≥ 2 min, `/healthz` sans base, alertes par push |
+| CDN de l'hébergeur qui ne met rien en cache (`cf-cache-status: DYNAMIC`) | chaque fichier statique passe par Node | en-têtes `immutable` + ETag (les navigateurs gardent 1 an), mesurer le débit (`benchmark local`) avant de promettre une capacité |
+
 ## Déploiement (PaaS) et configuration
 | Piège | Symptôme | Correctif |
 |---|---|---|

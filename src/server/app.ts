@@ -8,6 +8,7 @@ import { HttpError, audit, rateLimiter } from './security.js';
 import { publicRouter } from './routes/public.js';
 import { adminRouter } from './routes/admin.js';
 import { renderShop } from './shopHtml.js';
+import { LIMITS } from './limits.js';
 import { IMAGE_FILE_RE, getImage } from './images.js';
 
 export function createApp() {
@@ -43,8 +44,10 @@ export function createApp() {
   app.use(compression());
 
   // Plafond global par IP : amortit les inondations et le scraping.
-  const apiLimit = rateLimiter(600, 60e3);
+  const apiLimit = rateLimiter(LIMITS.api.max, LIMITS.api.windowMs);
   app.use('/api', (req, _res, next) => {
+    // Le catalogue est servi depuis la mémoire (304 quasi gratuit) : inutile de le compter, et les réseaux mobiles partagés le sollicitent beaucoup.
+    if (req.method === 'GET' && req.path === '/products') return next();
     if (!apiLimit.take(req.ip || '')) { audit('rate_limited', { ip: req.ip, path: req.path }); return next(new HttpError(429, 'Trop de requêtes')); }
     next();
   });

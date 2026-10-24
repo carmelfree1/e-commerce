@@ -125,3 +125,14 @@ Date : 24 octobre 2026. Les tests **destructifs** ont été exécutés uniquemen
 
 ## Limites
 La base de test (PGlite) n'a qu'une session : les tests de concurrence valident la logique (transactions, verrous `FOR UPDATE`) mais pas la contention réelle de Neon. Aucun test de déni de service (volontaire). Le site en ligne n'a subi aucun test destructif.
+
+---
+
+# Ajustement n°4 — anti-saturation (24 octobre 2026)
+
+| Problème | Réglage | Preuve (local) |
+|---|---|---|
+| Les limites par IP trop basses pénalisent les réseaux mobiles qui partagent une IP (CGNAT) | Limites centralisées dans `src/server/limits.ts` : clients généreux (30 commandes/10 min, 120 suivis/min, 60 inscriptions push/h, 1 200 req/min), administration inchangée voire stricte (connexion : verrou par compte à 8 + par IP à 10 ; mot de passe oublié : 5/h par IP, 3/h par adresse). Le catalogue en lecture n'est pas compté. | L1–L7 : blocages aux seuils exacts, une autre IP n'est jamais affectée |
+| La base serverless (Neon) ne dormait jamais | Catalogue en mémoire 10 min (`CATALOG_CACHE_SECONDS`), vidé à chaque écriture ; interrogation du panneau admin toutes les 2 min | C1–C4 : modification directe invisible tant que le cache vit, mais **toute écriture applicative apparaît tout de suite** ; 300 visites → 0 lecture SQL du catalogue |
+
+Non-régression : destructif 11/11, photos 10/10, attaques 29/29 et 17/17, limites et cache 12/12, 0 erreur 500. Compromis : une modification **directe** en base (hors application) peut mettre jusqu'à 10 minutes à apparaître sur le site ; avec plusieurs instances du serveur, mettre `CATALOG_CACHE_SECONDS=5`.

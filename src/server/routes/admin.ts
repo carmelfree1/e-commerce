@@ -3,6 +3,7 @@ import { config } from '../config.js';
 import { pool, tx } from '../db.js';
 import { invalidateProducts } from '../cache.js';
 import { sendResetCode } from '../mailer.js';
+import { LIMITS } from '../limits.js';
 import { MAX_TOTAL_BYTES, MIME, saveImage, totalImageBytes } from '../images.js';
 import {
   COOKIE_NAME, HttpError, MIN_PASSWORD, SESSION_MS, audit, createSession, destroyOtherSessions, destroySession,
@@ -18,8 +19,8 @@ import {
 
 export const adminRouter = Router();
 // Deux verrous : par IP (5 échecs / 15 min) ET par compte (8 échecs / 15 min), pour résister à une IP falsifiée ou distribuée.
-const loginIpLimit = rateLimiter(5, 15 * 60e3);
-const loginAcctLimit = rateLimiter(8, 15 * 60e3);
+const loginIpLimit = rateLimiter(LIMITS.loginIp.max, LIMITS.loginIp.windowMs);
+const loginAcctLimit = rateLimiter(LIMITS.loginAccount.max, LIMITS.loginAccount.windowMs);
 
 /* ----- Connexion (publique) ----- */
 adminRouter.post('/login', async (req, res) => {
@@ -59,10 +60,10 @@ adminRouter.post('/logout', async (req, res) => {
  *    la réussite révoque toutes les sessions ouvertes.
  */
 const RESET_MINUTES = 10, RESET_MAX_ATTEMPTS = 5;
-const forgotIpLimit = rateLimiter(5, 3600e3);
-const forgotMailLimit = rateLimiter(3, 3600e3);
-const resetIpLimit = rateLimiter(10, 15 * 60e3);
-const resetMailLimit = rateLimiter(8, 15 * 60e3);
+const forgotIpLimit = rateLimiter(LIMITS.forgotIp.max, LIMITS.forgotIp.windowMs);
+const forgotMailLimit = rateLimiter(LIMITS.forgotAccount.max, LIMITS.forgotAccount.windowMs);
+const resetIpLimit = rateLimiter(LIMITS.resetIp.max, LIMITS.resetIp.windowMs);
+const resetMailLimit = rateLimiter(LIMITS.resetAccount.max, LIMITS.resetAccount.windowMs);
 const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/;
 const isEmail = (s: string) => s.length <= 254 && EMAIL_RE.test(s);
 const sameHash = (a: string, b: string) => a.length === b.length && crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));

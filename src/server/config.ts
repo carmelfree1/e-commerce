@@ -35,5 +35,11 @@ export const config = {
    * par un proxy de confiance : n'importe qui pourrait se faire passer pour une autre IP.
    */
   clientIpHeader: (process.env.CLIENT_IP_HEADER ?? (process.env.RENDER === 'true' ? 'cf-connecting-ip' : '')).trim().toLowerCase(),
+  /**
+   * Durée de vie du catalogue en mémoire (secondes). Il est vidé à CHAQUE écriture passant par l'application (commande, admin) :
+   * la durée ne sert que de filet de sécurité (modification directe en base, plusieurs instances). Longue = la base serverless
+   * (Neon) peut s'endormir entre deux rafraîchissements. Mettre 5 si vous faites tourner plusieurs instances.
+   */
+  catalogCacheMs: (Number(process.env.CATALOG_CACHE_SECONDS) > 0 ? Number(process.env.CATALOG_CACHE_SECONDS) : 600) * 1000,
   trustProxy: process.env.TRUST_PROXY !== undefined ? (Number(process.env.TRUST_PROXY) || false) : (process.env.NODE_ENV === 'production' ? 1 : false),
 };

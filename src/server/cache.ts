@@ -1,11 +1,12 @@
 import crypto from 'node:crypto';
 import { pool } from './db.js';
 import type { PublicProduct } from '../shared/types.js';
+import { config } from './config.js';
 
 interface Cached { json: string; etag: string; at: number }
 
-/** Durée de vie maximale : filet de sécurité si plusieurs instances du serveur tournent. */
-const TTL_MS = 5000;
+/** Durée de vie du catalogue en mémoire (voir config.catalogCacheMs). Toute écriture le vide immédiatement (invalidateProducts). */
+const TTL_MS = config.catalogCacheMs;
 let cached: Cached | null = null;
 let lastGood: Cached | null = null; // dernière version connue, servie si la base est momentanément indisponible
 let loading: Promise<Cached> | null = null;
@@ -31,7 +32,7 @@ export function getPublicProducts(): Promise<Cached> {
       // Base injoignable (panne, réveil de Neon…) : on sert la dernière liste connue plutôt que de casser toute la boutique.
       if (lastGood) {
         console.error('Catalogue servi depuis le cache (base indisponible) :', (e as Error).message);
-        cached = { ...lastGood, at: Date.now() }; // on réessaiera la base dans 5 s, pas à chaque visiteur
+        cached = { ...lastGood, at: Date.now() - TTL_MS + 5000 }; // on réessaiera la base dans 5 s, pas à chaque visiteur
         return cached;
       }
       throw e;

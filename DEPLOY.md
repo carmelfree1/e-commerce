@@ -63,3 +63,12 @@ Où acheter : **[Cloudflare Registrar](https://www.cloudflare.com/products/regis
 | Impossible de se connecter à l'admin | Le cookie de session exige **HTTPS** : utilisez l'adresse `https://` |
 | Le mail « mot de passe oublié » n'arrive pas | `SMTP_PASS` (mot de passe d'application Gmail) incorrect, ou spams |
 | Le domaine ne se vérifie pas | Enregistrement AAAA restant, nuage Cloudflare orange, ou propagation DNS en cours |
+
+## 7. Capacité et plan gratuit de Neon
+- **Serveur (Render Starter : 0,5 CPU, 512 Mo)** : mesure locale en mode production ≈ 590 pages d'accueil/s, ≈ 850 fichiers statiques/s, ≈ 1 200 appels catalogue/s sur une machine de 2015 (ordres de grandeur ; divisez par 2 à 4 par prudence). Cela correspond à **quelques centaines de visiteurs simultanés** et plusieurs dizaines de milliers de visites par jour.
+- **Le vrai plafond est le calcul gratuit de Neon** (100 heures de calcul par projet et par mois, mise en veille après 5 minutes sans requête). Réglages qui économisent ces heures :
+  - le catalogue est gardé **10 minutes** en mémoire (`CATALOG_CACHE_SECONDS`) et vidé à chaque commande ou modification : les visites n'interrogent pas la base ;
+  - le panneau admin n'interroge le serveur que toutes les **2 minutes** (les notifications push donnent l'alerte immédiate) : **évitez de laisser un onglet admin ouvert en permanence**, il garde la base éveillée ;
+  - `/healthz` n'interroge pas la base.
+- **Limites par IP** (réseaux mobiles partagés : plusieurs clients derrière une même IP) : 30 commandes/10 min, 120 suivis/min, 60 inscriptions push/h, 1 200 requêtes API/min (le catalogue en lecture n'est pas compté). Les actions d'administration restent strictes. Tout est dans `src/server/limits.ts`.
+- Le CDN devant Render **ne met pas en cache** les fichiers statiques (`cf-cache-status: DYNAMIC`) : chaque fichier est servi par Node ; les navigateurs les gardent 1 an après la première visite. Surveillez la consommation dans la console Neon et le tableau de bord Render.

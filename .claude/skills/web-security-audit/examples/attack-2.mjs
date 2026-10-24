@@ -50,18 +50,18 @@ const ip = (n) => ({ 'X-Forwarded-For': `172.16.${Math.floor(n / 250)}.${n % 250
   rec('L4', 'Vrai endpoint Chrome (fcm.googleapis.com) toujours accepté', good.status === 200, `HTTP ${good.status}`);
 
   let accepted = 0;
-  for (let i = 0; i < 60; i++) {
+  for (let i = 0; i < 70; i++) {
     const r = await json('POST', '/api/subscribe', { subscription: { endpoint: `https://fcm.googleapis.com/fcm/send/flood${i}`, keys } }, undefined, { 'X-Forwarded-For': '172.31.0.1' });
     if (r.status === 200) accepted++;
   }
-  rec('M1', "Inscriptions push limitées par IP (pas d'inondation de la base)", accepted < 40, `${accepted}/60 acceptées depuis une IP`);
+  rec('M1', "Inscriptions push limitées par IP (60/heure : pas d'inondation de la base)", accepted >= 55 && accepted <= 62, `${accepted}/70 acceptées depuis une IP`);
 }
 
 /* N. Énumération des codes de commande */
 {
   let ok = 0;
   for (let i = 0; i < 150; i++) { const r = await json('GET', `/api/orders/CCM-AAAA${String(i).padStart(2, '0')}`, undefined, undefined, { 'X-Forwarded-For': '172.31.0.2' }); if (r.status === 404) ok++; }
-  rec('N1', 'Suivi de commande limité en débit (anti-énumération des codes)', ok < 120, `${ok}/150 requêtes traitées depuis une IP`);
+  rec('N1', 'Suivi de commande limité en débit (120/min : anti-énumération des codes)', ok >= 115 && ok <= 125, `${ok}/150 requêtes traitées depuis une IP`);
 }
 
 /* O. Cycle de vie des sessions */
@@ -98,8 +98,8 @@ const ip = (n) => ({ 'X-Forwarded-For': `172.16.${Math.floor(n / 250)}.${n % 250
 /* H. Force brute : limitation par IP, contournable par X-Forwarded-For ? */
 {
   let blocked = 0;
-  for (let i = 0; i < 8; i++) { const r = await json('POST', '/api/admin/login', { email: ADMIN.email, password: 'mauvais' + i }, undefined, ip(900)); if (r.status === 429) blocked++; }
-  rec('H1', 'Blocage après 5 échecs depuis une même IP', blocked >= 2, `${blocked}/8 requêtes bloquées`);
+  for (let i = 0; i < 12; i++) { const r = await json('POST', '/api/admin/login', { email: ADMIN.email, password: 'mauvais' + i }, undefined, ip(900)); if (r.status === 429) blocked++; }
+  rec('H1', 'Blocage après des échecs répétés (verrou par compte à 8, par IP à 10)', blocked >= 2, `${blocked}/12 requêtes bloquées`);
 
   let passed = 0;
   for (let i = 0; i < 30; i++) { const r = await json('POST', '/api/admin/login', { email: ADMIN.email, password: 'devine' + i }, undefined, ip(1000 + i)); if (r.status === 401) passed++; }

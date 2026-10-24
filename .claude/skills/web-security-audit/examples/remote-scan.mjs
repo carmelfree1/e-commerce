@@ -135,9 +135,9 @@ const json = (method, path, data, extra = {}) => {
 /* R. Limitation par IP (le test qui détecte une IP cliente mal identifiée derrière un proxy) */
 {
   const out = [];
-  for (let i = 0; i < 40; i++) out.push((await req('GET', `/api/orders/CCM-RATE${String(i).padStart(2, '0')}`)).status);
+  for (let i = 0; i < 130; i++) out.push((await req('GET', `/api/orders/CCM-RATE${String(i).padStart(3, '0')}`)).status);
   const first429 = out.indexOf(429) + 1;
-  rec('R1', 'Limitation par IP active : suivi de commande limité à 30/min (429 attendu dès la 31ᵉ requête)', first429 >= 28 && first429 <= 32, first429 ? `premier 429 à la requête n°${first429}` : 'JAMAIS bloqué sur 40 requêtes → la limitation par IP ne fonctionne pas');
+  rec('R1', 'Limitation par IP active : suivi de commande limité à 120/min (429 attendu dès la 121ᵉ requête)', first429 >= 118 && first429 <= 124, first429 ? `premier 429 à la requête n°${first429}` : 'JAMAIS bloqué sur 130 requêtes → la limitation par IP ne fonctionne pas');
   const sp = await req('GET', '/api/orders/CCM-SPOOF1', { headers: { 'X-Forwarded-For': '203.0.113.77', 'True-Client-IP': '203.0.113.79' } });
   rec('R2', "Falsifier X-Forwarded-For / True-Client-IP ne permet pas d'échapper à la limite", first429 === 0 ? false : sp.status === 429, `HTTP ${sp.status} (attendu 429 : toujours bloqué)`);
   const cf = await req('GET', '/api/orders/CCM-SPOOF2', { headers: { 'CF-Connecting-IP': '203.0.113.78' } });

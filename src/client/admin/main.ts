@@ -125,6 +125,7 @@ api<{ email: string }>('/api/admin/me').then(async (me) => {
   const hash = location.hash.slice(1) as TabName;
   await show(TABS.includes(hash) ? hash : 'accueil');
   await poll().catch(() => undefined);
-  setInterval(() => { void poll().catch(() => undefined); }, 30_000);
+  // 2 min : chaque interrogation réveille la base serverless ; les notifications push donnent l'alerte instantanée.
+  setInterval(() => { void poll().catch(() => undefined); }, 120_000);
   void registerServiceWorker();
 }).catch(() => undefined);

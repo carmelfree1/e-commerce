@@ -2,14 +2,15 @@ import { Router } from 'express';
 import crypto from 'node:crypto';
 import { pool, tx } from '../db.js';
 import { getPublicProducts, invalidateProducts } from '../cache.js';
+import { LIMITS } from '../limits.js';
 import { HttpError, rateLimiter, toInt, toStr } from '../security.js';
 import { background, isValidSubscription, pushToRole, saveSubscription, vapidPublicKey } from '../push.js';
 import { LOW_STOCK, STATUS_LABEL, type CheckoutPayload, type OrderStatus, type TrackedOrder } from '../../shared/types.js';
 
 export const publicRouter = Router();
-const orderLimit = rateLimiter(10, 10 * 60e3);
-const trackLimit = rateLimiter(30, 60e3); // anti-énumération des codes de commande
-const subscribeLimit = rateLimiter(20, 3600e3);
+const orderLimit = rateLimiter(LIMITS.order.max, LIMITS.order.windowMs);
+const trackLimit = rateLimiter(LIMITS.track.max, LIMITS.track.windowMs); // anti-énumération des codes de commande
+const subscribeLimit = rateLimiter(LIMITS.subscribe.max, LIMITS.subscribe.windowMs);
 const limited = (l: ReturnType<typeof rateLimiter>, req: { ip?: string }) => {
   if (!l.take(req.ip || '')) throw new HttpError(429, 'Trop de requêtes, réessayez plus tard.');
 };
